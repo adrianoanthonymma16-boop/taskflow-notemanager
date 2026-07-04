@@ -16,7 +16,7 @@
                 <MudText Class="mb-3" Color="Color.Secondary">
                     Gera um PDF com dados estruturados (JSON) para importação futura ou transferência entre máquinas.
                 </MudText>
-                <select style="width:100%;padding:12px 14px;border:1px solid #ccc;border-radius:4px;font-size:16px;font-family:inherit;background:white;margin-bottom:12px"
+                <select style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:4px;font-size:16px;font-family:inherit;background:var(--surface);color:var(--text);margin-bottom:12px"
                         value="@_dataScope" @onchange="OnDataScopeChanged">
                     <option value="1">Apenas Tarefas</option>
                     <option value="2">Apenas Notas</option>
@@ -34,7 +34,7 @@
                 <MudText Class="mb-3" Color="Color.Secondary">
                     Gera um PDF com layout visual para leitura humana ou impressão física.
                 </MudText>
-                <select style="width:100%;padding:12px 14px;border:1px solid #ccc;border-radius:4px;font-size:16px;font-family:inherit;background:white;margin-bottom:12px"
+                <select style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:4px;font-size:16px;font-family:inherit;background:var(--surface);color:var(--text);margin-bottom:12px"
                         value="@_visualScope" @onchange="OnVisualScopeChanged">
                     <option value="1">Apenas Tarefas</option>
                     <option value="2">Apenas Notas</option>

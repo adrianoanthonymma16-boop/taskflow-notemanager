@@ -83,6 +83,12 @@ Infrastructure (EF Core DbContext, Repositories, PDF services)
 - **Dark Mode**: Native CSS-based gray-tone dark theme with localStorage persistence
 - **Single Instance**: Global Mutex prevents duplicate app execution
 
+### Dependencies
+
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or later
+- A modern web browser (Chrome, Firefox, Edge, etc.)
+- **Linux only**: `curl` (usually pre-installed)
+
 ### Running
 
 ```bash
@@ -96,6 +102,51 @@ dotnet run
 
 # Open browser at
 # http://localhost:5000
+```
+
+### Desktop Shortcuts
+
+#### Linux
+
+Create a `.desktop` file on your desktop:
+
+```bash
+cat > ~/Desktop/taskflow-notemanager.desktop << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=TaskFlow NoteManager
+Comment=Gerenciador de tarefas e notas offline
+Exec=/home/$USER/Projetos/gerenciador_de_tarefas_e_notas/deploy/launcher/run-taskflow.sh
+Icon=text-editor
+Terminal=false
+Categories=Office;Utility;
+Keywords=task;note;manager;pdf;signature;offline;
+StartupWMClass=taskflow
+EOF
+
+chmod +x ~/Desktop/taskflow-notemanager.desktop
+```
+
+> Adjust `Exec=` to point to `deploy/launcher/run-taskflow.sh` inside your project directory.
+> Right-click the icon on your desktop and select **"Allow Launching"** if prompted.
+
+#### Windows
+
+Create a shortcut to `deploy\launcher\TaskFlow_Launcher.bat`:
+
+1. Right-click on your Desktop → **New → Shortcut**
+2. Browse to `C:\Users\%USERNAME%\...\deploy\launcher\TaskFlow_Launcher.bat`
+3. Name it `TaskFlow NoteManager`
+4. Right-click the shortcut → **Properties → Change Icon** (optional)
+
+Or via command line (PowerShell):
+
+```powershell
+$WScriptShell = New-Object -ComObject WScript.Shell
+$Shortcut = $WScriptShell.CreateShortcut("$env:USERPROFILE\Desktop\TaskFlow.lnk")
+$Shortcut.TargetPath = "$env:USERPROFILE\Projetos\gerenciador_de_tarefas_e_notas\deploy\launcher\TaskFlow_Launcher.bat"
+$Shortcut.IconLocation = "imageres.dll,12"
+$Shortcut.Save()
 ```
 
 ### Testing
@@ -114,6 +165,22 @@ iscc deploy/windows/installer.iss
 # Linux (.deb)
 bash deploy/linux/build-deb.sh
 ```
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+## Licença
+
+Este projeto está licenciado sob a [Licença MIT](LICENSE).
+
+---
+
+© 2024 TaskFlow NoteManager. Distributed under the MIT License.
 
 ---
 
@@ -196,6 +263,12 @@ Infrastructure (EF Core DbContext, Repositórios, Serviços PDF)
 - **Modo Escuro**: Tema escuro em tons de cinza via CSS nativo com persistência em localStorage
 - **Instância Única**: Mutex global impede execução duplicada do app
 
+### Dependências
+
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) ou superior
+- Um navegador moderno (Chrome, Firefox, Edge, etc.)
+- **Apenas Linux**: `curl` (geralmente já instalado)
+
 ### Executando
 
 ```bash
@@ -209,6 +282,51 @@ dotnet run
 
 # Abrir no navegador
 # http://localhost:5000
+```
+
+### Atalhos na Tela Inicial
+
+#### Linux
+
+Crie um arquivo `.desktop` na sua área de trabalho:
+
+```bash
+cat > ~/Desktop/taskflow-notemanager.desktop << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=TaskFlow NoteManager
+Comment=Gerenciador de tarefas e notas offline
+Exec=/home/$USER/Projetos/gerenciador_de_tarefas_e_notas/deploy/launcher/run-taskflow.sh
+Icon=text-editor
+Terminal=false
+Categories=Office;Utility;
+Keywords=task;note;manager;pdf;signature;offline;
+StartupWMClass=taskflow
+EOF
+
+chmod +x ~/Desktop/taskflow-notemanager.desktop
+```
+
+> Ajuste `Exec=` para apontar para `deploy/launcher/run-taskflow.sh` dentro do seu diretório do projeto.
+> Clique com o botão direito no ícone e selecione **"Permitir Inicialização"** se solicitado.
+
+#### Windows
+
+Crie um atalho para `deploy\launcher\TaskFlow_Launcher.bat`:
+
+1. Clique com botão direito na Área de Trabalho → **Novo → Atalho**
+2. Navegue até `C:\Users\%USERNAME%\...\deploy\launcher\TaskFlow_Launcher.bat`
+3. Nomeie como `TaskFlow NoteManager`
+4. Clique direito no atalho → **Propriedades → Alterar Ícone** (opcional)
+
+Ou via linha de comando (PowerShell):
+
+```powershell
+$WScriptShell = New-Object -ComObject WScript.Shell
+$Shortcut = $WScriptShell.CreateShortcut("$env:USERPROFILE\Desktop\TaskFlow.lnk")
+$Shortcut.TargetPath = "$env:USERPROFILE\Projetos\gerenciador_de_tarefas_e_notas\deploy\launcher\TaskFlow_Launcher.bat"
+$Shortcut.IconLocation = "imageres.dll,12"
+$Shortcut.Save()
 ```
 
 ### Testes

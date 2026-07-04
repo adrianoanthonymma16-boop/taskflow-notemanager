@@ -18,18 +18,18 @@
 }
 
 html.dark-mode {
-    --bg: #37474f;
-    --surface: #455a64;
-    --text: #eceff1;
-    --text-secondary: #b0bec5;
-    --border: #546e7a;
-    --appbar: #263238;
-    --drawer: #37474f;
-    --primary: #64b5f6;
-    --stat-blue: #263238;
-    --stat-orange: #263238;
-    --stat-green: #263238;
-    --stat-purple: #263238;
+    --bg: #121212;
+    --surface: #1e1e1e;
+    --text: #e0e0e0;
+    --text-secondary: #9e9e9e;
+    --border: #333333;
+    --appbar: #1a1a1a;
+    --drawer: #181818;
+    --primary: #90caf9;
+    --stat-blue: #1a2233;
+    --stat-orange: #2a2118;
+    --stat-green: #1a2418;
+    --stat-purple: #24182a;
     --stat-blue-text: #64b5f6;
     --stat-orange-text: #ffb74d;
     --stat-green-text: #81c784;
@@ -55,10 +55,47 @@ body {
 .mud-table { background-color: var(--surface) !important; }
 .mud-typography { color: var(--text) !important; }
 
-select, input[type="date"], input[type="text"], textarea {
+select, input[type="date"], input[type="text"], input[type="password"], textarea {
     background-color: var(--surface) !important;
     color: var(--text) !important;
     border-color: var(--border) !important;
 }
 
 .stat-card { background-color: var(--surface) !important; }
+
+.card-list-item {
+    border-bottom: 1px solid var(--border) !important;
+}
+
+.progress-track {
+    background-color: var(--border) !important;
+}
+
+html.dark-mode .mud-alert-text-info {
+    background-color: #1a2233 !important;
+    color: #64b5f6 !important;
+}
+
+html.dark-mode .mud-alert {
+    color: var(--text) !important;
+}
+
+html.dark-mode .mud-icon-button {
+    color: var(--text) !important;
+}
+
+html.dark-mode .mud-expand-panel {
+    background-color: var(--surface) !important;
+}
+
+html.dark-mode .mud-table-cell {
+    color: var(--text) !important;
+}
+
+html.dark-mode .mud-input-outlined {
+    color: var(--text) !important;
+}
+
+html.dark-mode .mud-nav-link.active {
+    background-color: rgba(255,255,255,0.1) !important;
+}

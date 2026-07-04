@@ -6,8 +6,8 @@
                       Required="true" Class="mb-3" />
         <MudTextField @bind-Value="_model.Content" Label="Conteúdo" Variant="Variant.Outlined"
                       Lines="8" Class="mb-3" />
-        <label style="display:block;font-size:0.85rem;color:#666;margin-bottom:4px">Status</label>
-        <select style="width:100%;padding:12px 14px;border:1px solid #ccc;border-radius:4px;font-size:16px;font-family:inherit;background:white;margin-bottom:12px"
+        <label style="display:block;font-size:0.85rem;color:var(--text-secondary);margin-bottom:4px">Status</label>
+        <select style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:4px;font-size:16px;font-family:inherit;background:var(--surface);color:var(--text);margin-bottom:12px"
                 value="@_model.Status" @onchange="OnStatusChanged">
             <option value="0">Rascunho</option>
             <option value="1">Publicado</option>

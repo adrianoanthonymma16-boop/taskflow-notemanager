@@ -14,21 +14,21 @@
 @if (_loaded)
 {
     <div class="d-flex flex-wrap gap-3 mb-6" style="justify-content:space-between">
-        <div class="stat-card" style="flex:1;min-width:180px;background:#e3f2fd;padding:20px;border-radius:8px;text-align:center">
-            <div style="font-size:2.2rem;font-weight:bold;color:#1565c0">@_openCount</div>
-            <div style="color:#1565c0;font-weight:500">Tarefas Abertas</div>
+        <div class="stat-card" style="flex:1;min-width:180px;background:var(--stat-blue);padding:20px;border-radius:8px;text-align:center">
+            <div style="font-size:2.2rem;font-weight:bold;color:var(--stat-blue-text)">@_openCount</div>
+            <div style="color:var(--stat-blue-text);font-weight:500">Tarefas Abertas</div>
         </div>
-        <div class="stat-card" style="flex:1;min-width:180px;background:#fff3e0;padding:20px;border-radius:8px;text-align:center">
-            <div style="font-size:2.2rem;font-weight:bold;color:#e65100">@_pendingCount</div>
-            <div style="color:#e65100;font-weight:500">Pendentes</div>
+        <div class="stat-card" style="flex:1;min-width:180px;background:var(--stat-orange);padding:20px;border-radius:8px;text-align:center">
+            <div style="font-size:2.2rem;font-weight:bold;color:var(--stat-orange-text)">@_pendingCount</div>
+            <div style="color:var(--stat-orange-text);font-weight:500">Pendentes</div>
         </div>
-        <div class="stat-card" style="flex:1;min-width:180px;background:#e8f5e9;padding:20px;border-radius:8px;text-align:center">
-            <div style="font-size:2.2rem;font-weight:bold;color:#2e7d32">@_completedCount</div>
-            <div style="color:#2e7d32;font-weight:500">Concluídas</div>
+        <div class="stat-card" style="flex:1;min-width:180px;background:var(--stat-green);padding:20px;border-radius:8px;text-align:center">
+            <div style="font-size:2.2rem;font-weight:bold;color:var(--stat-green-text)">@_completedCount</div>
+            <div style="color:var(--stat-green-text);font-weight:500">Concluídas</div>
         </div>
-        <div class="stat-card" style="flex:1;min-width:180px;background:#f3e5f5;padding:20px;border-radius:8px;text-align:center">
-            <div style="font-size:2.2rem;font-weight:bold;color:#7b1fa2">@_noteCount</div>
-            <div style="color:#7b1fa2;font-weight:500">Notas</div>
+        <div class="stat-card" style="flex:1;min-width:180px;background:var(--stat-purple);padding:20px;border-radius:8px;text-align:center">
+            <div style="font-size:2.2rem;font-weight:bold;color:var(--stat-purple-text)">@_noteCount</div>
+            <div style="color:var(--stat-purple-text);font-weight:500">Notas</div>
         </div>
     </div>
 
@@ -51,7 +51,7 @@
                 {
                     @foreach (var t in _overdueTasks)
                     {
-                        <div style="padding:8px 0;border-bottom:1px solid #eee;cursor:pointer"
+                        <div style="padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer"
                              @onclick='() => Navigation.NavigateTo("/tasks")'>
                             <MudText Style="font-weight:500">@t.Title</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Error">
@@ -79,9 +79,9 @@
                 {
                     @foreach (var t in _recentTasks)
                     {
-                        <div style="padding:8px 0;border-bottom:1px solid #eee;cursor:pointer"
+                        <div style="padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer"
                              @onclick='() => Navigation.NavigateTo("/tasks")'>
-                            <MudText Style="font-weight:500;color:#1565c0">@t.Title</MudText>
+                            <MudText Style="font-weight:500;color:var(--primary)">@t.Title</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">
                                 @GetStatusLabel(t.Status) — @t.CreatedAt.ToString("dd/MM/yyyy")
                             </MudText>
@@ -103,7 +103,7 @@
                 {
                     @foreach (var t in _thisWeekTasks)
                     {
-                        <div style="padding:8px 0;border-bottom:1px solid #eee">
+                        <div style="padding:8px 0;border-bottom:1px solid var(--border)">
                             <MudText Style="font-weight:500">@t.Title</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Primary">
                                 Prazo: @t.DueDate?.ToString("dd/MM/yyyy") — @t.StatusName
@@ -127,7 +127,7 @@
                         <div style="display:flex;justify-content:space-between">
                             <span>Abertas</span><span>@_openCount (@((_openCount * 100 / total))%)</span>
                         </div>
-                        <div style="height:8px;background:#e0e0e0;border-radius:4px;margin-top:4px">
+                        <div style="height:8px;background:var(--border);border-radius:4px;margin-top:4px">
                             <div style="height:8px;width:@(_openCount * 100 / total)%;background:#1565c0;border-radius:4px"></div>
                         </div>
                     </div>
@@ -135,7 +135,7 @@
                         <div style="display:flex;justify-content:space-between">
                             <span>Pendentes</span><span>@_pendingCount (@((_pendingCount * 100 / total))%)</span>
                         </div>
-                        <div style="height:8px;background:#e0e0e0;border-radius:4px;margin-top:4px">
+                        <div style="height:8px;background:var(--border);border-radius:4px;margin-top:4px">
                             <div style="height:8px;width:@(_pendingCount * 100 / total)%;background:#e65100;border-radius:4px"></div>
                         </div>
                     </div>
@@ -143,7 +143,7 @@
                         <div style="display:flex;justify-content:space-between">
                             <span>Concluídas</span><span>@_completedCount (@((_completedCount * 100 / total))%)</span>
                         </div>
-                        <div style="height:8px;background:#e0e0e0;border-radius:4px;margin-top:4px">
+                        <div style="height:8px;background:var(--border);border-radius:4px;margin-top:4px">
                             <div style="height:8px;width:@(_completedCount * 100 / total)%;background:#2e7d32;border-radius:4px"></div>
                         </div>
                     </div>
@@ -171,9 +171,9 @@
                 {
                     @foreach (var n in _recentNotes)
                     {
-                        <div style="padding:8px 0;border-bottom:1px solid #eee;cursor:pointer"
+                        <div style="padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer"
                              @onclick='() => Navigation.NavigateTo("/notes")'>
-                            <MudText Style="font-weight:500;color:#1565c0">@n.Title</MudText>
+                            <MudText Style="font-weight:500;color:var(--primary)">@n.Title</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">
                                 @n.StatusName — @n.CreatedAt.ToString("dd/MM/yyyy")
                             </MudText>
