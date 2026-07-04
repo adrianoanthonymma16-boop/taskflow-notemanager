@@ -1,0 +1,246 @@
+@page "/tasks"
+@rendermode InteractiveServer
+@inject ITaskService TaskService
+@inject UserStateService UserState
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+
+<MudText Typo="Typo.h4" Class="mb-4">Tarefas</MudText>
+
+<MudGrid Class="mb-4">
+    <MudItem xs="12" sm="4">
+        <select class="mud-select" style="width:100%;padding:12px 14px;border:1px solid #ccc;border-radius:4px;font-size:16px;font-family:inherit;background:white"
+                value="@_filterStatus" @onchange="OnFilterChanged">
+            <option value="">Todos os status</option>
+            <option value="0">Abertas</option>
+            <option value="1">Pendentes</option>
+            <option value="2">Concluídas</option>
+        </select>
+    </MudItem>
+    <MudItem xs="12" sm="8" Class="d-flex justify-end">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="Icons.Material.Filled.Add"
+                   OnClick="OpenCreateDialog">
+            Nova Tarefa
+        </MudButton>
+    </MudItem>
+</MudGrid>
+
+@if (_tasks.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Class="ma-4">Nenhuma tarefa encontrada.</MudAlert>
+}
+else
+{
+    @foreach (var task in _tasks)
+    {
+        <MudPaper Elevation="1" Class="pa-4 mb-3">
+            <div class="d-flex justify-space-between align-start">
+                <div>
+                    <MudText Typo="Typo.h6">@task.Title</MudText>
+                    <MudText Color="@GetStatusColor(task.Status)" Typo="Typo.caption">
+                        <strong>@task.StatusName</strong>@(task.DueDate.HasValue ? $" — Prazo: {task.DueDate:dd/MM/yyyy}" : "")
+                    </MudText>
+                    @if (task.DueDate.HasValue && task.Status == 0)
+                    {
+                        var warning = GetDueWarning(task.DueDate.Value);
+                        <MudAlert Severity="@warning.Severity" Class="mt-2 mb-0" Style="padding:4px 12px;font-size:0.85rem" Square="true">
+                            @warning.Message
+                        </MudAlert>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(task.Description))
+                    {
+                        <MudText Typo="Typo.body2" Class="mt-1" Color="Color.Secondary">
+                            @(task.Description.Length > 100 ? task.Description[..100] + "..." : task.Description)
+                        </MudText>
+                    }
+                </div>
+                <div class="d-flex gap-2">
+                    @if (task.Status == 0)
+                    {
+                        <MudButton Variant="Variant.Filled" Size="Size.Small" Color="Color.Error"
+                                   OnClick="() => MarkPending(task)" StartIcon="Icons.Material.Filled.Warning">
+                            Pendência
+                        </MudButton>
+                    }
+                    @if (task.Status == 1)
+                    {
+                        <MudButton Variant="Variant.Filled" Size="Size.Small" Color="Color.Warning"
+                                   OnClick="() => ResolvePending(task)" StartIcon="Icons.Material.Filled.Clear">
+                            Remover Pendência
+                        </MudButton>
+                    }
+                    @if (task.Status == 0 || task.Status == 1)
+                    {
+                        <MudButton Variant="Variant.Filled" Size="Size.Small" Color="Color.Success"
+                                   OnClick="() => CompleteTask(task)" StartIcon="Icons.Material.Filled.CheckCircle">
+                            Concluir
+                        </MudButton>
+                    }
+                    @if (task.Status == 2)
+                    {
+                        <MudButton Variant="Variant.Filled" Size="Size.Small" Color="Color.Info"
+                                   OnClick="() => ReopenTask(task)" StartIcon="Icons.Material.Filled.Undo">
+                            Reabrir
+                        </MudButton>
+                    }
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                               OnClick="() => ViewTask(task)" StartIcon="Icons.Material.Filled.Visibility">
+                        Ver
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                               OnClick="() => OpenEditDialog(task)" StartIcon="Icons.Material.Filled.Edit">
+                        Editar
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Error"
+                               OnClick="() => DeleteTask(task)" StartIcon="Icons.Material.Filled.Delete">
+                        Excluir
+                    </MudButton>
+                </div>
+            </div>
+        </MudPaper>
+    }
+}
+
+@code {
+    private List<TaskDto> _tasks = new();
+    private string _filterStatus = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserState.CurrentUser is null) return;
+        await LoadTasks();
+    }
+
+    private async Task OnFilterChanged(ChangeEventArgs e)
+    {
+        _filterStatus = e.Value?.ToString() ?? "";
+        await LoadTasks();
+        StateHasChanged();
+    }
+
+    private async Task LoadTasks()
+    {
+        if (UserState.CurrentUser is null) return;
+        int? status = null;
+        if (int.TryParse(_filterStatus, out var s)) status = s;
+        _tasks = await TaskService.GetByOwnerAsync(UserState.CurrentUser.Id, status);
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var dto = new CreateTaskDto();
+        var parameters = new DialogParameters { ["Model"] = dto };
+        var dialog = await DialogService.ShowAsync<TaskDialog>("Nova Tarefa", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is CreateTaskDto resultDto)
+        {
+            if (UserState.CurrentUser is not null)
+                await TaskService.CreateAsync(UserState.CurrentUser.Id, resultDto);
+            await LoadTasks();
+            Snackbar.Add("Tarefa criada.", Severity.Success);
+        }
+    }
+
+    private async Task OpenEditDialog(TaskDto task)
+    {
+        var dto = new CreateTaskDto { Title = task.Title, Description = task.Description, DueDate = task.DueDate };
+        var parameters = new DialogParameters { ["Model"] = dto, ["IsEdit"] = true };
+        var dialog = await DialogService.ShowAsync<TaskDialog>("Editar Tarefa", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is CreateTaskDto resultDto)
+        {
+            var update = new UpdateTaskDto { Title = resultDto.Title, Description = resultDto.Description, DueDate = resultDto.DueDate };
+            await TaskService.UpdateAsync(task.Id, update);
+            await LoadTasks();
+            Snackbar.Add("Tarefa atualizada.", Severity.Success);
+        }
+    }
+
+    private async Task ViewTask(TaskDto task)
+    {
+        var dialog = await DialogService.ShowAsync<TaskViewDialog>("", new DialogParameters { ["TaskDto"] = task },
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        await dialog.Result;
+        await LoadTasks();
+    }
+
+    private async Task MarkPending(TaskDto task)
+    {
+        var dto = new CreatePendingLogDto { TaskId = task.Id };
+        var parameters = new DialogParameters { ["Model"] = dto };
+        var dialog = await DialogService.ShowAsync<PendingDialog>("Marcar como Pendência", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (!result.Canceled && UserState.CurrentUser is not null)
+        {
+            await TaskService.MarkAsPendingAsync(UserState.CurrentUser.Id, dto);
+            await LoadTasks();
+            Snackbar.Add("Tarefa marcada como pendente.", Severity.Warning);
+        }
+    }
+
+    private async Task ResolvePending(TaskDto task)
+    {
+        await TaskService.ResolvePendingAsync(task.Id);
+        await LoadTasks();
+        Snackbar.Add("Pendência removida. Tarefa reaberta.", Severity.Success);
+    }
+
+    private async Task CompleteTask(TaskDto task)
+    {
+        try
+        {
+            await TaskService.MarkAsCompletedAsync(task.Id);
+            await LoadTasks();
+            Snackbar.Add("Tarefa concluída.", Severity.Success);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task ReopenTask(TaskDto task)
+    {
+        await TaskService.ReopenAsync(task.Id);
+        await LoadTasks();
+        Snackbar.Add("Tarefa reaberta.", Severity.Success);
+    }
+
+    private async Task DeleteTask(TaskDto task)
+    {
+        var confirmed = await DialogService.ShowMessageBox("Confirmar", $"Excluir tarefa '{task.Title}'?",
+            yesText: "Sim", cancelText: "Não");
+        if (confirmed == true)
+        {
+            await TaskService.DeleteAsync(task.Id);
+            await LoadTasks();
+            Snackbar.Add("Tarefa excluída.", Severity.Success);
+        }
+    }
+
+    private static (string Message, Severity Severity) GetDueWarning(DateTime dueDate)
+    {
+        var days = (dueDate.Date - DateTime.Today).Days;
+        if (days < 0)
+            return ($"Atrasada há {-days} dia{(-days > 1 ? "s" : "")}", Severity.Error);
+        if (days == 0)
+            return ("Vence hoje", Severity.Warning);
+        if (days == 1)
+            return ("Falta 1 dia", Severity.Warning);
+        if (days <= 3)
+            return ($"Faltam {days} dias", Severity.Info);
+        return ($"Faltam {days} dias", Severity.Normal);
+    }
+
+    private static Color GetStatusColor(int status) => status switch
+    {
+        0 => Color.Info,
+        1 => Color.Warning,
+        2 => Color.Success,
+        _ => Color.Default
+    };
+}

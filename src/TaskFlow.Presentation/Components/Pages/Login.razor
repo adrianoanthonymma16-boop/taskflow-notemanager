@@ -1,0 +1,87 @@
+@page "/login"
+@rendermode InteractiveServer
+@using TaskFlow.Application.Services.Interfaces
+@using TaskFlow.Presentation.Components.Shared
+@inject IAuthService AuthService
+@inject UserStateService UserState
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<div style="position:absolute;top:16px;right:16px">
+    <button @onclick="ToggleTheme" style="background:none;border:none;cursor:pointer;font-size:1.6rem;padding:8px" title="Alternar modo claro/escuro">
+        🌙
+    </button>
+</div>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudPaper Elevation="3" Class="pa-8">
+        <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom="true">
+            TaskFlow NoteManager
+        </MudText>
+        <MudText Typo="Typo.subtitle1" Align="Align.Center" Class="mb-8">
+            Entre com suas credenciais
+        </MudText>
+
+        <EditForm Model="_model" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+            <MudTextField @bind-Value="_model.Username" Label="Usuário" Variant="Variant.Outlined"
+                          Required="true" Immediate="true" Class="mb-4" />
+            <MudTextField @bind-Value="_model.Password" Label="Senha" Variant="Variant.Outlined"
+                          InputType="InputType.Password" Required="true" Immediate="true" Class="mb-4" />
+
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                       FullWidth="true" Disabled="_isLoading" Class="mb-4">
+                @if (_isLoading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+                Entrar
+            </MudButton>
+        </EditForm>
+
+        <div class="d-flex justify-space-between">
+            <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="GoToRegister">
+                Criar conta
+            </MudButton>
+            <MudButton Variant="Variant.Text" Color="Color.Tertiary" OnClick="GoToRecover">
+                Esqueci minha senha
+            </MudButton>
+        </div>
+    </MudPaper>
+
+    <MudText Align="Align.Center" Class="mt-4" Typo="Typo.caption" Color="Color.Secondary">
+        Aplicativo desktop offline
+    </MudText>
+</MudContainer>
+
+@code {
+    private LoginDto _model = new();
+    private bool _isLoading;
+
+    private async Task HandleLogin()
+    {
+        _isLoading = true;
+        try
+        {
+            var user = await AuthService.LoginAsync(_model);
+            if (user is null)
+            {
+                Snackbar.Add("Usuário ou senha inválidos.", Severity.Error);
+                return;
+            }
+            UserState.SetUser(user);
+            Navigation.NavigateTo("/tasks");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void GoToRegister() => Navigation.NavigateTo("/register");
+    private void GoToRecover() => Navigation.NavigateTo("/recover-password");
+
+    private async Task ToggleTheme() => await JS.InvokeVoidAsync("themeManager.toggle");
+}

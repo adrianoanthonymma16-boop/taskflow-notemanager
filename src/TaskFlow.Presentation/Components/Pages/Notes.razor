@@ -1,0 +1,148 @@
+@page "/notes"
+@rendermode InteractiveServer
+@inject INoteService NoteService
+@inject UserStateService UserState
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+
+<MudText Typo="Typo.h4" Class="mb-4">Notas</MudText>
+
+<MudGrid Class="mb-4">
+    <MudItem xs="12" sm="4">
+        <select class="mud-select" style="width:100%;padding:12px 14px;border:1px solid #ccc;border-radius:4px;font-size:16px;font-family:inherit;background:white"
+                value="@_filterStatus" @onchange="OnFilterChanged">
+            <option value="">Todos os status</option>
+            <option value="0">Rascunho</option>
+            <option value="1">Publicadas</option>
+            <option value="2">Arquivadas</option>
+        </select>
+    </MudItem>
+    <MudItem xs="12" sm="8" Class="d-flex justify-end">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="Icons.Material.Filled.Add"
+                   OnClick="OpenCreateDialog">
+            Nova Nota
+        </MudButton>
+    </MudItem>
+</MudGrid>
+
+@if (_notes.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Class="ma-4">Nenhuma nota encontrada.</MudAlert>
+}
+else
+{
+    @foreach (var note in _notes)
+    {
+        <MudPaper Elevation="1" Class="pa-4 mb-3">
+            <div class="d-flex justify-space-between align-start">
+                <div>
+                    <MudText Typo="Typo.h6">@note.Title</MudText>
+                    <MudText Color="@GetStatusColor(note.Status)" Typo="Typo.caption">
+                        <strong>@note.StatusName</strong> — @note.CreatedAt.ToString("dd/MM/yyyy")
+                    </MudText>
+                </div>
+                <div class="d-flex gap-2">
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                               OnClick="() => ViewNote(note)" StartIcon="Icons.Material.Filled.Visibility">
+                        Ver
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                               OnClick="() => OpenEditDialog(note)" StartIcon="Icons.Material.Filled.Edit">
+                        Editar
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Error"
+                               OnClick="() => DeleteNote(note)" StartIcon="Icons.Material.Filled.Delete">
+                        Excluir
+                    </MudButton>
+                </div>
+            </div>
+        </MudPaper>
+    }
+}
+
+@code {
+    private List<NoteDto> _notes = new();
+    private string _filterStatus = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserState.CurrentUser is null) return;
+        await LoadNotes();
+    }
+
+    private async Task OnFilterChanged(ChangeEventArgs e)
+    {
+        _filterStatus = e.Value?.ToString() ?? "";
+        await LoadNotes();
+        StateHasChanged();
+    }
+
+    private async Task LoadNotes()
+    {
+        if (UserState.CurrentUser is null) return;
+        int? status = null;
+        if (int.TryParse(_filterStatus, out var s)) status = s;
+        _notes = await NoteService.GetByOwnerAsync(UserState.CurrentUser.Id, status);
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var dto = new CreateNoteDto();
+        var parameters = new DialogParameters { ["Model"] = dto };
+        var dialog = await DialogService.ShowAsync<NoteDialog>("Nova Nota", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is CreateNoteDto resultDto)
+        {
+            if (UserState.CurrentUser is not null)
+                await NoteService.CreateAsync(UserState.CurrentUser.Id, resultDto);
+            await LoadNotes();
+            Snackbar.Add("Nota criada.", Severity.Success);
+        }
+    }
+
+    private async Task OpenEditDialog(NoteDto note)
+    {
+        var dto = new CreateNoteDto { Title = note.Title, Content = note.Content, Status = note.Status };
+        var parameters = new DialogParameters { ["Model"] = dto, ["IsEdit"] = true };
+        var dialog = await DialogService.ShowAsync<NoteDialog>("Editar Nota", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is CreateNoteDto resultDto)
+        {
+            var update = new UpdateNoteDto { Title = resultDto.Title, Content = resultDto.Content, Status = resultDto.Status };
+            await NoteService.UpdateAsync(note.Id, update);
+            await LoadNotes();
+            Snackbar.Add("Nota atualizada.", Severity.Success);
+        }
+    }
+
+    private async Task ViewNote(NoteDto note)
+    {
+        var dialog = await DialogService.ShowAsync<NoteViewDialog>("", new DialogParameters { ["Note"] = note },
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+        await dialog.Result;
+        await LoadNotes();
+    }
+
+    private async Task DeleteNote(NoteDto note)
+    {
+        var confirmed = await DialogService.ShowMessageBox("Confirmar", $"Excluir nota '{note.Title}'?",
+            yesText: "Sim", cancelText: "Não");
+        if (confirmed == true)
+        {
+            await NoteService.DeleteAsync(note.Id);
+            await LoadNotes();
+            Snackbar.Add("Nota excluída.", Severity.Success);
+        }
+    }
+
+    private static Color GetStatusColor(int status) => status switch
+    {
+        0 => Color.Default,
+        1 => Color.Success,
+        2 => Color.Secondary,
+        _ => Color.Default
+    };
+}

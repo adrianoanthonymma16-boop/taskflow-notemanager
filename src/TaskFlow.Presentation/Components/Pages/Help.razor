@@ -1,0 +1,209 @@
+@page "/help"
+@rendermode InteractiveServer
+
+<MudText Typo="Typo.h4" Class="mb-6">
+    <MudIcon Icon="Icons.Material.Filled.MenuBook" Class="mr-2" />
+    Como Usar o TaskFlow
+</MudText>
+
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true">
+    <MudTabPanel Text="Introdução">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h5" Class="mb-4">Bem-vindo ao TaskFlow NoteManager</MudText>
+
+            <MudAlert Severity="Severity.Info" Class="mb-4">
+                O TaskFlow é um <strong>aplicativo desktop offline</strong> para gerenciamento de
+                tarefas e notas. Tudo roda localmente na sua máquina, sem necessidade de internet.
+            </MudAlert>
+
+            <MudText Typo="Typo.h6" Class="mb-2">O que você pode fazer?</MudText>
+
+            <div class="ml-4 mb-3">
+                <MudText Class="mb-1"><MudIcon Icon="Icons.Material.Filled.Task" Size="Size.Small" Class="mr-2" /><strong>Tarefas:</strong> Crie, acompanhe e conclua tarefas com datas de prazo.</MudText>
+                <MudText Class="mb-1"><MudIcon Icon="Icons.Material.Filled.Warning" Size="Size.Small" Class="mr-2" /><strong>Pendências:</strong> Bloqueie tarefas que dependem de terceiros, registrando o motivo.</MudText>
+                <MudText Class="mb-1"><MudIcon Icon="Icons.Material.Filled.Note" Size="Size.Small" Class="mr-2" /><strong>Notas:</strong> Escreva notas com anexos (PDF, DOC, DOCX).</MudText>
+                <MudText Class="mb-1"><MudIcon Icon="Icons.Material.Filled.FileDownload" Size="Size.Small" Class="mr-2" /><strong>Exportar:</strong> Gere PDFs para backup ou impressão.</MudText>
+                <MudText><MudIcon Icon="Icons.Material.Filled.FileUpload" Size="Size.Small" Class="mr-2" /><strong>Importar:</strong> Restaure dados de PDFs ou leia PDFs de outros usuários.</MudText>
+            </div>
+
+            <MudDivider Class="my-4" />
+
+            <MudText Typo="Typo.h6" Class="mb-2">Dados seguros</MudText>
+            <MudText>
+                Todos os dados ficam armazenados localmente em
+                <code>~/.local/share/TaskFlow/Data/</code> (Linux)
+                ou <code>%APPDATA%\TaskFlow\Data\</code> (Windows).
+                Suas senhas são protegidas com hash BCrypt.
+            </MudText>
+        </MudPaper>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Tarefas">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h5" Class="mb-4">
+                <MudIcon Icon="Icons.Material.Filled.Task" Class="mr-2" />
+                Gerenciando Tarefas
+            </MudText>
+
+            <MudText Typo="Typo.h6" Class="mb-2" Color="Color.Primary">1. Criando uma nova tarefa</MudText>
+            <div class="ml-4 mb-4">
+                <MudText>Vá até a página <strong>Tarefas</strong> no menu lateral.</MudText>
+                <MudText>Clique no botão <strong>Nova Tarefa</strong> (canto superior direito).</MudText>
+                <MudText>Preencha o <strong>Título</strong> (obrigatório).</MudText>
+                <MudText>Opcional: adicione <strong>Descrição</strong> e <strong>Data de Término</strong>.</MudText>
+                <MudText>Clique em <strong>Criar</strong>.</MudText>
+            </div>
+
+            <MudText Typo="Typo.h6" Class="mb-2" Color="Color.Primary">2. Visualizando e editando</MudText>
+            <div class="ml-4 mb-4">
+                <MudText>Na listagem, clique no ícone <MudIcon Icon="Icons.Material.Filled.Visibility" Size="Size.Small" /> para ver detalhes.</MudText>
+                <MudText>Clique no ícone <MudIcon Icon="Icons.Material.Filled.Edit" Size="Size.Small" /> para editar título, descrição ou data.</MudText>
+                <MudText>Use o filtro de <strong>Status</strong> para ver apenas Abertas, Pendentes ou Concluídas.</MudText>
+            </div>
+
+            <MudText Typo="Typo.h6" Class="mb-2" Color="Color.Primary">3. Fluxo de status (Open → Pending → Completed)</MudText>
+            <div class="ml-4 mb-4">
+                <MudPaper Elevation="1" Class="pa-3 mb-2" Style="border-left:4px solid #2196f3">
+                    <MudText><strong>Aberta (Open):</strong> Tarefa recém-criada, pronta para execução.</MudText>
+                </MudPaper>
+                <MudPaper Elevation="1" Class="pa-3 mb-2" Style="border-left:4px solid #ff9800">
+                    <MudText><strong>Pendente (Pending):</strong> Bloqueada — use o botão "Marcar Pendência" para registrar o motivo do bloqueio e a contraparte envolvida.</MudText>
+                </MudPaper>
+                <MudPaper Elevation="1" Class="pa-3 mb-2" Style="border-left:4px solid #4caf50">
+                    <MudText><strong>Concluída (Completed):</strong> Só pode ser concluída se não houver pendências ativas. Clique em "Concluir".</MudText>
+                </MudPaper>
+                <MudAlert Severity="Severity.Warning" Class="mt-3">
+                    Uma tarefa concluída <strong>pode ser reaberta</strong> clicando em "Reabrir".
+                </MudAlert>
+            </div>
+
+            <MudText Typo="Typo.h6" Class="mb-2" Color="Color.Primary">4. Excluindo uma tarefa</MudText>
+            <div class="ml-4">
+                <MudText>
+                    Clique no ícone <MudIcon Icon="Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" />
+                    e confirme. A exclusão remove também todos os logs de pendência vinculados.
+                </MudText>
+            </div>
+        </MudPaper>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Notas">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h5" Class="mb-4">
+                <MudIcon Icon="Icons.Material.Filled.Note" Class="mr-2" />
+                Gerenciando Notas
+            </MudText>
+
+            <MudText Typo="Typo.h6" Class="mb-2" Color="Color.Primary">1. Criando uma nota</MudText>
+            <div class="ml-4 mb-4">
+                <MudText>Vá até <strong>Notas</strong> no menu lateral.</MudText>
+                <MudText>Clique em <strong>Nova Nota</strong>.</MudText>
+                <MudText>Preencha <strong>Título</strong> e <strong>Conteúdo</strong> (texto livre).</MudText>
+                <MudText>Escolha o status: <strong>Rascunho</strong>, <strong>Publicado</strong> ou <strong>Arquivado</strong>.</MudText>
+                <MudText>Clique em <strong>Criar</strong>.</MudText>
+            </div>
+
+            <MudText Typo="Typo.h6" Class="mb-2" Color="Color.Primary">2. Adicionando anexos (PDF, DOC, DOCX)</MudText>
+            <div class="ml-4 mb-4">
+                <MudText>Ao visualizar uma nota, role até a seção <strong>Anexos</strong>.</MudText>
+                <MudText>Clique em <strong>Adicionar Anexo</strong> e selecione o arquivo do seu computador.</MudText>
+                <MudText>Para remover, clique no ícone de lixeira ao lado do anexo.</MudText>
+                <MudAlert Severity="Severity.Info" Class="mt-2">
+                    Limite de upload: 50 MB por arquivo. Os anexos ficam na pasta
+                    <code>Uploads/</code> dentro do diretório de dados.
+                </MudAlert>
+            </div>
+
+            <MudText Typo="Typo.h6" Class="mb-2" Color="Color.Primary">3. Estados da nota</MudText>
+            <div class="ml-4">
+                <MudText Class="mb-2">Rascunho: nota em edição, ainda não finalizada.</MudText>
+                <MudText Class="mb-2">Publicado: nota finalizada e visível.</MudText>
+                <MudText>Arquivado: nota arquivada para referência futura.</MudText>
+            </div>
+        </MudPaper>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Exportar/Importar">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h5" Class="mb-4">
+                <MudIcon Icon="Icons.Material.Filled.SwapHoriz" Class="mr-2" />
+                Exportação e Importação
+            </MudText>
+
+            <MudText Typo="Typo.h6" Class="mb-2" Color="Color.Primary">PDF de Dados (Tipo 1 — Backup)</MudText>
+            <div class="ml-4 mb-4">
+                <MudText>Gera um PDF com <strong>JSON embutido</strong> contendo todos os dados. Ideal para backup.</MudText>
+                <MudText>1. Escolha o <strong>escopo</strong>: Apenas Tarefas, Apenas Notas, ou Sistema Completo.</MudText>
+                <MudText>2. Clique em <strong>Gerar PDF de Dados</strong>. O arquivo será baixado.</MudText>
+            </div>
+
+            <MudText Typo="Typo.h6" Class="mb-2" Color="Color.Primary">PDF Visual (Tipo 2 — Impressão)</MudText>
+            <div class="ml-4 mb-4">
+                <MudText>Gera um PDF com <strong>layout visual e legível</strong>, com tabelas e texto completo das notas.</MudText>
+                <MudText>1. Escolha o escopo desejado.</MudText>
+                <MudText>2. Clique em <strong>Gerar PDF Visual</strong>.</MudText>
+            </div>
+
+            <MudText Typo="Typo.h6" Class="mb-2" Color="Color.Primary">Importar: Restaurando dados (Modo A)</MudText>
+            <div class="ml-4 mb-4">
+                <MudText>Restaure dados de um PDF Tipo 1 com a estratégia desejada:</MudText>
+                <MudText>• <strong>Substituir:</strong> limpa tudo e recria.</MudText>
+                <MudText>• <strong>Mesclar:</strong> atualiza existentes + insere novos.</MudText>
+                <MudText>• <strong>Anexar:</strong> insere apenas o que não existe.</MudText>
+                <MudText class="mt-2">Opcional: ative <strong>Filtrar por período</strong> para datas específicas.</MudText>
+            </div>
+
+            <MudText Typo="Typo.h6" Class="mb-2" Color="Color.Primary">Leitura Visual (Modo B)</MudText>
+            <div class="ml-4 mb-4">
+                <MudText>Importe qualquer PDF para <strong>leitura visual</strong> sem alterar seus dados.</MudText>
+                <MudText>Os PDFs ficam na seção <strong>PDFs Visuais</strong> do menu.</MudText>
+            </div>
+
+            <MudText Typo="Typo.h6" Class="mb-2" Color="Color.Primary">Conflito de propriedade</MudText>
+            <div class="ml-4">
+                <MudAlert Severity="Severity.Warning" Class="mb-2">
+                    Ao importar dados de outro usuário, o sistema oferece 3 opções:
+                </MudAlert>
+                <MudText>• <strong>Integrar:</strong> adota os dados para você (OwnerId trocado).</MudText>
+                <MudText>• <strong>Visualizar (Modo B):</strong> salva como leitura externa.</MudText>
+                <MudText>• <strong>Cancelar:</strong> aborta a importação.</MudText>
+            </div>
+        </MudPaper>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Dicas Rápidas">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h5" Class="mb-4">
+                <MudIcon Icon="Icons.Material.Filled.Lightbulb" Class="mr-2" />
+                Dicas e Atalhos
+            </MudText>
+
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudPaper Elevation="2" Class="pa-3 mb-3">
+                        <MudText Typo="Typo.h6">Perfil e foto</MudText>
+                        <MudText>No menu superior direito, clique no seu nome para acessar o perfil. Altere nome, foto e senha.</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudPaper Elevation="2" Class="pa-3 mb-3">
+                        <MudText Typo="Typo.h6">Recuperação de senha</MudText>
+                        <MudText>Na tela de login, clique em <strong>"Esqueci minha senha"</strong>. Responda a pergunta de segurança.</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudPaper Elevation="2" Class="pa-3 mb-3">
+                        <MudText Typo="Typo.h6">Instância única</MudText>
+                        <MudText>O app impede múltiplas execuções simultâneas para evitar conflitos no banco SQLite.</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudPaper Elevation="2" Class="pa-3 mb-3">
+                        <MudText Typo="Typo.h6">Modo escuro</MudText>
+                        <MudText>Clique no ícone 🌙 no canto superior direito para alternar entre modo claro e escuro (tons de cinza).</MudText>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudTabPanel>
+</MudTabs>

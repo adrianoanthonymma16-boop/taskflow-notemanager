@@ -1,0 +1,37 @@
+@rendermode InteractiveServer
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_model.Title" Label="Título" Variant="Variant.Outlined"
+                      Required="true" Class="mb-3" />
+        <MudTextField @bind-Value="_model.Description" Label="Descrição" Variant="Variant.Outlined"
+                      Lines="3" Class="mb-3" />
+        <div class="mb-3">
+            <MudText Typo="Typo.body2" Class="mb-1">Data de Término</MudText>
+            <input type="date" class="mud-input mud-input-outlined mud-input-adorned-start"
+                   style="width:100%;padding:12px 14px;border:1px solid #ccc;border-radius:4px;font-size:16px;font-family:inherit;box-sizing:border-box"
+                   value="@DueDateFormatted"
+                   @onchange="OnDueDateChanged" />
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">@(IsEdit ? "Salvar" : "Criar")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public CreateTaskDto Model { get; set; } = new();
+    [Parameter] public bool IsEdit { get; set; }
+    private CreateTaskDto _model = new();
+    private string DueDateFormatted => _model.DueDate?.ToString("yyyy-MM-dd") ?? "";
+
+    protected override void OnParametersSet() { _model = Model; }
+    private void OnDueDateChanged(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var date)) _model.DueDate = date;
+    }
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_model));
+    private void Cancel() => MudDialog.Cancel();
+}

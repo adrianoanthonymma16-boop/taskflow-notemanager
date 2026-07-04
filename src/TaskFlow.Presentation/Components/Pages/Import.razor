@@ -1,0 +1,133 @@
+@page "/import"
+@rendermode InteractiveServer
+@inject IImportService ImportService
+@inject UserStateService UserState
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<MudText Typo="Typo.h4" Class="mb-6">Importar Dados</MudText>
+
+<MudPaper Elevation="2" Class="pa-6">
+    <MudText Typo="Typo.h6" Class="mb-4">Upload de PDF para Importação</MudText>
+
+    <select style="width:100%;padding:12px 14px;border:1px solid #ccc;border-radius:4px;font-size:16px;font-family:inherit;background:white;margin-bottom:12px"
+            value="@_conflictStrategy" @onchange="OnConflictChanged">
+        <option value="0">Substituir (limpa e recria)</option>
+        <option value="1">Mesclar (atualiza + insere)</option>
+        <option value="2">Anexar (só insere novos)</option>
+    </select>
+
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:12px;font-size:16px">
+        <input type="checkbox" checked="@_filterByDate" @onchange="OnFilterByDateChanged" />
+        Filtrar por período
+    </label>
+
+    @if (_filterByDate)
+    {
+        <div style="display:flex;gap:12px;margin-bottom:12px">
+            <input type="date" value="@(_startDate?.ToString("yyyy-MM-dd") ?? "")"
+                   @onchange="OnStartDateChanged"
+                   style="flex:1;padding:12px;border:1px solid #ccc;border-radius:4px;font-size:16px" />
+            <input type="date" value="@(_endDate?.ToString("yyyy-MM-dd") ?? "")"
+                   @onchange="OnEndDateChanged"
+                   style="flex:1;padding:12px;border:1px solid #ccc;border-radius:4px;font-size:16px" />
+        </div>
+    }
+
+    <MudFileUpload T="IBrowserFile" Accept=".pdf" OnFilesChanged="OnFileSelected">
+        <ActivatorContent>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="Icons.Material.Filled.FileUpload" Disabled="_isImporting">
+                Selecionar PDF e Importar
+            </MudButton>
+        </ActivatorContent>
+    </MudFileUpload>
+
+    @if (_isImporting)
+    {
+        <MudProgressLinear Indeterminate="true" Class="mt-3" />
+    }
+</MudPaper>
+
+@code {
+    private int _conflictStrategy = 1;
+    private bool _filterByDate;
+
+    private void OnConflictChanged(ChangeEventArgs e) => _conflictStrategy = int.Parse(e.Value?.ToString() ?? "1");
+    private DateTime? _startDate;
+    private DateTime? _endDate;
+    private bool _isImporting;
+
+    private DateTime? ParseDate(string? value)
+    {
+        if (DateTime.TryParse(value, out var d)) return d;
+        return null;
+    }
+
+    private void OnFilterByDateChanged(ChangeEventArgs e) => _filterByDate = e.Value is bool b && b;
+    private void OnStartDateChanged(ChangeEventArgs e) => _startDate = ParseDate(e.Value?.ToString());
+    private void OnEndDateChanged(ChangeEventArgs e) => _endDate = ParseDate(e.Value?.ToString());
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        if (e.FileCount == 0 || UserState.CurrentUser is null) return;
+
+        _isImporting = true;
+        try
+        {
+            var file = e.File;
+            var buffer = new byte[file.Size];
+            await file.OpenReadStream(50 * 1024 * 1024).ReadAsync(buffer);
+
+            var request = new ImportRequestDto
+            {
+                FileBytes = buffer,
+                FileName = file.Name,
+                ConflictStrategy = _conflictStrategy,
+                FilterByDate = _filterByDate,
+                StartDate = _startDate,
+                EndDate = _endDate,
+                OwnershipAction = 0
+            };
+
+            var result = await ImportService.ImportDataPdfAsync(UserState.CurrentUser.Id, request);
+
+            if (result.Message == "OWNERSHIP_CONFLICT")
+            {
+                request.OwnershipAction = await ShowOwnershipDialog();
+                if (request.OwnershipAction == 0)
+                {
+                    Snackbar.Add("Importação cancelada.", Severity.Info);
+                    return;
+                }
+                result = await ImportService.ImportDataPdfAsync(UserState.CurrentUser.Id, request);
+            }
+
+            if (result.Success)
+                Snackbar.Add(result.Message, Severity.Success);
+            else
+                Snackbar.Add(result.Message, Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isImporting = false;
+        }
+    }
+
+    private async Task<int> ShowOwnershipDialog()
+    {
+        var dialog = await DialogService.ShowMessageBox(
+            "Conflito de Propriedade",
+            "Os dados deste PDF pertencem a outro usuário. O que deseja fazer?",
+            yesText: "Integrar (adotar dados)",
+            cancelText: "Visualizar (Modo B)",
+            options: new DialogOptions { MaxWidth = MaxWidth.Small });
+        return dialog == true ? 1 : 2;
+    }
+
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+}

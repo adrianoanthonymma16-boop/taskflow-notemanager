@@ -1,0 +1,39 @@
+@rendermode InteractiveServer
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_model.Title" Label="Título" Variant="Variant.Outlined"
+                      Required="true" Class="mb-3" />
+        <MudTextField @bind-Value="_model.Content" Label="Conteúdo" Variant="Variant.Outlined"
+                      Lines="8" Class="mb-3" />
+        <label style="display:block;font-size:0.85rem;color:#666;margin-bottom:4px">Status</label>
+        <select style="width:100%;padding:12px 14px;border:1px solid #ccc;border-radius:4px;font-size:16px;font-family:inherit;background:white;margin-bottom:12px"
+                value="@_model.Status" @onchange="OnStatusChanged">
+            <option value="0">Rascunho</option>
+            <option value="1">Publicado</option>
+            <option value="2">Arquivado</option>
+        </select>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">@(IsEdit ? "Salvar" : "Criar")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public CreateNoteDto Model { get; set; } = new();
+    [Parameter] public bool IsEdit { get; set; }
+
+    private CreateNoteDto _model = new();
+
+    protected override void OnParametersSet()
+    {
+        _model = Model;
+    }
+
+    private void OnStatusChanged(ChangeEventArgs e) => _model.Status = int.Parse(e.Value?.ToString() ?? "0");
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_model));
+    private void Cancel() => MudDialog.Cancel();
+}

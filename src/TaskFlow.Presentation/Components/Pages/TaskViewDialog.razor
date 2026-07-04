@@ -1,0 +1,126 @@
+@rendermode InteractiveServer
+@inject ITaskService TaskService
+@inject UserStateService UserState
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@Task.Title</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Class="mb-3"><strong>Status:</strong> <MudText Color="@GetStatusColor(Task.Status)" Typo="Typo.caption" Inline="true"><strong>@Task.StatusName</strong></MudText></MudText>
+        <MudText Class="mb-3"><strong>Prazo:</strong> @(Task.DueDate?.ToString("dd/MM/yyyy") ?? "Sem prazo")</MudText>
+
+        @if (!string.IsNullOrWhiteSpace(Task.Description))
+        {
+            <MudPaper Elevation="1" Class="pa-3 mb-3">
+                <MudText Style="white-space:pre-wrap">@Task.Description</MudText>
+            </MudPaper>
+        }
+
+        <MudDivider Class="my-4" />
+
+        <div class="d-flex gap-2 flex-wrap">
+            @if (Task.Status == 0)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="OpenPendingDialog">
+                    Marcar Pendência
+                </MudButton>
+            }
+            @if (Task.Status == 0 || Task.Status == 1)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="CompleteTask">
+                    Concluir
+                </MudButton>
+            }
+            @if (Task.Status == 2)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Info" OnClick="ReopenTask">
+                    Reabrir
+                </MudButton>
+            }
+        </div>
+
+        @if (Task.PendingLogs.Count > 0)
+        {
+            <MudText Typo="Typo.h6" Class="mt-6 mb-3">Histórico de Pendências</MudText>
+            @foreach (var log in Task.PendingLogs)
+            {
+                <MudPaper Elevation="1" Class="pa-3 mb-2">
+                    <MudText><strong>Por:</strong> @log.OwnerName em @log.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
+                    <MudText><strong>Motivo:</strong> @log.Reason</MudText>
+                    @if (log.CounterpartyName is not null)
+                    {
+                        <MudText><strong>Contraparte:</strong> @log.CounterpartyName</MudText>
+                    }
+                </MudPaper>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Error" OnClick="DeleteTaskAction" StartIcon="Icons.Material.Filled.Delete">
+            Excluir
+        </MudButton>
+        <MudSpacer />
+        <MudButton OnClick="() => MudDialog.Close()">Fechar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public TaskDto Task { get; set; } = new();
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+
+    private async Task OpenPendingDialog()
+    {
+        var dto = new CreatePendingLogDto { TaskId = Task.Id };
+        var parameters = new DialogParameters { ["Model"] = dto };
+        var dialog = await DialogService.ShowAsync<PendingDialog>("Marcar como Pendência", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (!result.Canceled && UserState.CurrentUser is not null)
+        {
+            await TaskService.MarkAsPendingAsync(UserState.CurrentUser.Id, dto);
+            Snackbar.Add("Tarefa marcada como pendente.", Severity.Warning);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+    }
+
+    private async Task CompleteTask()
+    {
+        try
+        {
+            await TaskService.MarkAsCompletedAsync(Task.Id);
+            Snackbar.Add("Tarefa concluída.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task ReopenTask()
+    {
+        await TaskService.ReopenAsync(Task.Id);
+        Snackbar.Add("Tarefa reaberta.", Severity.Success);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private async Task DeleteTaskAction()
+    {
+        var confirmed = await DialogService.ShowMessageBox("Confirmar",
+            $"Excluir tarefa '{Task.Title}'?", yesText: "Sim", cancelText: "Não");
+        if (confirmed == true)
+        {
+            await TaskService.DeleteAsync(Task.Id);
+            Snackbar.Add("Tarefa excluída.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+    }
+
+    private static Color GetStatusColor(int status) => status switch
+    {
+        0 => Color.Info, 1 => Color.Warning, 2 => Color.Success, _ => Color.Default
+    };
+}

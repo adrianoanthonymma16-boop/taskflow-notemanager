@@ -1,0 +1,66 @@
+﻿@inherits LayoutComponentBase
+@inject UserStateService UserState
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<MudLayout>
+    @if (UserState.IsAuthenticated)
+    {
+        <MudAppBar Elevation="1" Color="Color.Primary">
+            <MudIconButton Icon="Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="DrawerToggle" />
+            <MudSpacer />
+            <MudText Typo="Typo.h6" Class="ml-4">TaskFlow NoteManager</MudText>
+            <MudSpacer />
+            <button @onclick="ToggleTheme" style="background:none;border:none;cursor:pointer;color:inherit;font-size:1.4rem;padding:8px" title="Alternar modo claro/escuro">
+                🌙
+            </button>
+            <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                <ActivatorContent>
+                    <MudButton Variant="Variant.Text" Color="Color.Inherit" StartIcon="Icons.Material.Filled.Person">
+                        @UserState.CurrentUser?.FullName
+                    </MudButton>
+                </ActivatorContent>
+                <ChildContent>
+                    <MudMenuItem OnClick="GoToProfile">Perfil</MudMenuItem>
+                    <MudMenuItem OnClick="DoLogout">Sair</MudMenuItem>
+                </ChildContent>
+            </MudMenu>
+        </MudAppBar>
+
+        <MudDrawer @bind-Open="_drawerOpen" Anchor="Anchor.Left" Elevation="2">
+            <MudDrawerHeader>
+                <MudText Typo="Typo.h6">Menu</MudText>
+            </MudDrawerHeader>
+            <NavMenu />
+        </MudDrawer>
+    }
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="my-4 pt-2">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+
+    protected override void OnInitialized()
+    {
+        UserState.OnStateChanged += () => InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ToggleTheme()
+    {
+        await JS.InvokeVoidAsync("themeManager.toggle");
+    }
+
+    private void DrawerToggle() => _drawerOpen = !_drawerOpen;
+    private void GoToProfile() => Navigation.NavigateTo("/profile");
+
+    private void DoLogout()
+    {
+        UserState.Logout();
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+}

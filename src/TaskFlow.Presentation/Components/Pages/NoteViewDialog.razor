@@ -1,0 +1,135 @@
+@rendermode InteractiveServer
+@inject INoteService NoteService
+@inject UserStateService UserState
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@Note.Title</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Class="mb-3">
+            <strong>Status:</strong>
+            <MudText Color="@GetStatusColor(Note.Status)" Typo="Typo.caption" Inline="true"><strong>@Note.StatusName</strong></MudText>
+        </MudText>
+
+        @if (!string.IsNullOrWhiteSpace(Note.Content))
+        {
+            <MudPaper Elevation="1" Class="pa-3 mb-4">
+                <MudText Style="white-space: pre-wrap">@Note.Content</MudText>
+            </MudPaper>
+        }
+
+        <MudDivider Class="mb-4" />
+
+        <MudText Typo="Typo.h6" Class="mb-2">Anexos (@Note.Attachments.Count)</MudText>
+
+        <MudFileUpload T="IBrowserFile" Accept=".pdf,.doc,.docx" OnFilesChanged="OnFilesUploaded" Class="mb-3">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="Icons.Material.Filled.AttachFile" Disabled="_isUploading">
+                    Adicionar Anexo
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+
+        @if (_isUploading)
+        {
+            <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="ml-2" />
+        }
+
+        @if (Note.Attachments.Count > 0)
+        {
+            <MudTable Items="Note.Attachments" Hover="true" Dense="true">
+                <HeaderContent>
+                    <MudTh>Arquivo</MudTh>
+                    <MudTh>Tipo</MudTh>
+                    <MudTh>Tamanho</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.FileName</MudTd>
+                    <MudTd>@context.FileType</MudTd>
+                    <MudTd>@context.FileSizeFormatted</MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       OnClick="() => RemoveAttachment(context)" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Error" OnClick="DeleteNoteAction" StartIcon="Icons.Material.Filled.Delete">
+            Excluir
+        </MudButton>
+        <MudSpacer />
+        <MudButton OnClick="() => MudDialog.Close()">Fechar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public NoteDto Note { get; set; } = new();
+    private bool _isUploading;
+
+    private async Task OnFilesUploaded(InputFileChangeEventArgs e)
+    {
+        if (e.FileCount == 0 || UserState.CurrentUser is null) return;
+        _isUploading = true;
+        try
+        {
+            foreach (var file in e.GetMultipleFiles())
+            {
+                var stream = file.OpenReadStream(50 * 1024 * 1024);
+                var att = await NoteService.AddAttachmentAsync(Note.Id, UserState.CurrentUser.Id,
+                    file.Name, file.ContentType, file.Size, stream);
+
+                if (att is not null)
+                    Note.Attachments.Add(att);
+            }
+            Snackbar.Add("Anexos adicionados.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isUploading = false;
+        }
+    }
+
+    private async Task RemoveAttachment(AttachmentDto attachment)
+    {
+        var confirmed = await DialogService.ShowMessageBox("Confirmar",
+            $"Remover anexo '{attachment.FileName}'?", yesText: "Sim", cancelText: "Não");
+        if (confirmed == true)
+        {
+            await NoteService.RemoveAttachmentAsync(attachment.Id);
+            Note.Attachments.Remove(attachment);
+            Snackbar.Add("Anexo removido.", Severity.Success);
+        }
+    }
+
+    private async Task DeleteNoteAction()
+    {
+        var confirmed = await DialogService.ShowMessageBox("Confirmar",
+            $"Excluir nota '{Note.Title}'?", yesText: "Sim", cancelText: "Não");
+        if (confirmed == true)
+        {
+            await NoteService.DeleteAsync(Note.Id);
+            Snackbar.Add("Nota excluída.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+    }
+
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+    private static Color GetStatusColor(int status) => status switch
+    {
+        0 => Color.Default,
+        1 => Color.Success,
+        2 => Color.Secondary,
+        _ => Color.Default
+    };
+}

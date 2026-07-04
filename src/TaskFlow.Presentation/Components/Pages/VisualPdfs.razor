@@ -1,0 +1,124 @@
+@page "/visual-pdfs"
+@rendermode InteractiveServer
+@inject IVisualPdfRecordRepository VisualRepo
+@inject UserStateService UserState
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<MudText Typo="Typo.h4" Class="mb-4">PDFs Visuais (Modo B)</MudText>
+
+<MudText Class="mb-4" Color="Color.Secondary">
+    PDFs importados para leitura visual, sem integração com seus dados.
+</MudText>
+
+    <MudFileUpload T="IBrowserFile" Accept=".pdf" OnFilesChanged="OnFileImported" Class="mb-4">
+    <ActivatorContent>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="Icons.Material.Filled.FileUpload" Disabled="_isUploading">
+            Importar PDF para Leitura
+        </MudButton>
+    </ActivatorContent>
+</MudFileUpload>
+
+@if (_records.Count == 0)
+{
+    <MudAlert Severity="Severity.Info">Nenhum PDF visual importado.</MudAlert>
+}
+else
+{
+    <MudTable Items="_records" Hover="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Arquivo</MudTh>
+            <MudTh>Escopo</MudTh>
+            <MudTh>Externo</MudTh>
+            <MudTh>Importado em</MudTh>
+            <MudTh>Ações</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.OriginalFileName</MudTd>
+            <MudTd>@context.SourceScopeName</MudTd>
+            <MudTd>
+                <MudText Color="@(context.IsExternal ? Color.Warning : Color.Info)" Typo="Typo.caption"><strong>@(context.IsExternal ? "Sim" : "Não")</strong></MudText>
+            </MudTd>
+            <MudTd>@context.ImportedAt.ToString("dd/MM/yyyy HH:mm")</MudTd>
+            <MudTd>
+                <MudIconButton Icon="Icons.Material.Filled.Visibility" Size="Size.Small"
+                               OnClick="() => ViewPdf(context.Id)" />
+                <MudIconButton Icon="Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               OnClick="() => DeleteRecord(context.Id)" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<VisualPdfRecordDto> _records = new();
+    private bool _isUploading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRecords();
+    }
+
+    private async Task LoadRecords()
+    {
+        if (UserState.CurrentUser is null) return;
+        var records = await VisualRepo.GetByOwnerAsync(UserState.CurrentUser.Id);
+        _records = records.Select(r => new VisualPdfRecordDto
+        {
+            Id = r.Id,
+            OriginalFileName = r.OriginalFileName,
+            SourceScope = (int)r.SourceScope,
+            SourceScopeName = r.SourceScope.ToString(),
+            IsExternal = r.IsExternal,
+            UserDescription = r.UserDescription,
+            ImportedAt = r.ImportedAt
+        }).ToList();
+    }
+
+    private async Task OnFileImported(InputFileChangeEventArgs e)
+    {
+        if (e.FileCount == 0 || UserState.CurrentUser is null) return;
+        _isUploading = true;
+        try
+        {
+            foreach (var file in e.GetMultipleFiles())
+            {
+                var buffer = new byte[file.Size];
+                await file.OpenReadStream(50 * 1024 * 1024).ReadAsync(buffer);
+                await ImportService.VisualImportAsync(UserState.CurrentUser.Id, buffer, file.Name);
+            }
+            await LoadRecords();
+            Snackbar.Add("PDF importado para leitura visual.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isUploading = false;
+        }
+    }
+
+    private async Task ViewPdf(int id)
+    {
+        Snackbar.Add("Visualizador de PDF será implementado.", Severity.Info);
+    }
+
+    private async Task DeleteRecord(int id)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            "Confirmar", "Remover este registro?", yesText: "Sim", cancelText: "Não");
+        if (confirmed == true)
+        {
+            await VisualRepo.DeleteAsync(id);
+            await LoadRecords();
+            Snackbar.Add("Registro removido.", Severity.Success);
+        }
+    }
+
+    [Inject] private IImportService ImportService { get; set; } = default!;
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+}

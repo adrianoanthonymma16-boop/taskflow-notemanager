@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=TaskFlow NoteManager
+Comment=Gerenciador de tarefas e notas offline
+Exec=/usr/local/bin/taskflow/TaskFlow.Presentation
+Icon=/usr/local/bin/taskflow/taskflow.png
+Terminal=false
+Categories=Office;Utility;
+Keywords=task;note;manager;pdf;signature;

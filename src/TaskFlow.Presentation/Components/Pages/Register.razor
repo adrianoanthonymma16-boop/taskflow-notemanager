@@ -1,0 +1,64 @@
+@page "/register"
+@rendermode InteractiveServer
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-12">
+    <MudPaper Elevation="3" Class="pa-8">
+        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-6">Criar Conta</MudText>
+
+        <EditForm Model="_model" OnValidSubmit="HandleRegister">
+            <DataAnnotationsValidator />
+            <MudTextField @bind-Value="_model.Username" Label="Usuário" Variant="Variant.Outlined" Required="true" Class="mb-3" />
+            <MudTextField @bind-Value="_model.FullName" Label="Nome Completo" Variant="Variant.Outlined" Required="true" Class="mb-3" />
+            <MudTextField @bind-Value="_model.Password" Label="Senha" InputType="InputType.Password"
+                          Variant="Variant.Outlined" Required="true" Class="mb-3" />
+            <MudTextField @bind-Value="_model.ConfirmPassword" Label="Confirmar Senha" InputType="InputType.Password"
+                          Variant="Variant.Outlined" Required="true" Class="mb-3" />
+            <MudTextField @bind-Value="_model.SecurityQuestion" Label="Pergunta de Segurança"
+                          Variant="Variant.Outlined" Required="true" Class="mb-3"
+                          HelperText="Ex: Qual o nome do seu primeiro animal de estimação?" />
+            <MudTextField @bind-Value="_model.SecurityAnswer" Label="Resposta de Segurança"
+                          Variant="Variant.Outlined" Required="true" Class="mb-4"
+                          HelperText="Guarde bem esta resposta. Ela será usada para recuperar sua senha." />
+
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                       FullWidth="true" Disabled="_isLoading" Class="mb-4">
+                Criar Conta
+            </MudButton>
+        </EditForm>
+
+        <MudButton Variant="Variant.Text" Color="Color.Secondary" FullWidth="true" OnClick='() => Navigation.NavigateTo("/login")'>
+            Já tenho uma conta
+        </MudButton>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private RegisterDto _model = new();
+    private bool _isLoading;
+
+    private async Task HandleRegister()
+    {
+        _isLoading = true;
+        try
+        {
+            await AuthService.RegisterAsync(_model);
+            Snackbar.Add("Conta criada com sucesso! Faça login.", Severity.Success);
+            Navigation.NavigateTo("/login");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

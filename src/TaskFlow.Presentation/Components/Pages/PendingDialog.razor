@@ -1,0 +1,23 @@
+@rendermode InteractiveServer
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_model.Reason" Label="Motivo da Pendência" Variant="Variant.Outlined"
+                      Lines="3" Required="true" Class="mb-3" />
+        <MudTextField @bind-Value="_model.CounterpartyName" Label="Nome da Contraparte (opcional)" Variant="Variant.Outlined" Class="mb-3" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Warning" OnClick="Submit">Marcar Pendência</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public CreatePendingLogDto Model { get; set; } = new();
+    private CreatePendingLogDto _model = new();
+
+    protected override void OnParametersSet() { _model = Model; }
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_model));
+    private void Cancel() => MudDialog.Cancel();
+}

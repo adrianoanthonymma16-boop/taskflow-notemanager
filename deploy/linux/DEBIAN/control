@@ -1,0 +1,12 @@
+Package: taskflow-notemanager
+Version: 1.0.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Depends: libc6 (>= 2.31), libstdc++6 (>= 9)
+Maintainer: TaskFlow <support@taskflow.local>
+Homepage: http://localhost:5000
+Description: TaskFlow NoteManager - Gerenciador de tarefas e notas offline
+ Um aplicativo desktop offline para gerenciamento de tarefas,
+ notas, assinaturas digitais e anexos de arquivos.
+ Utiliza interface web local (Blazor Server) com SQLite.

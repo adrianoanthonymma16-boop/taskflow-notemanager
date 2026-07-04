@@ -1,0 +1,129 @@
+@page "/profile"
+@rendermode InteractiveServer
+@inject IAuthService AuthService
+@inject UserStateService UserState
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<MudText Typo="Typo.h4" Class="mb-6">Meu Perfil</MudText>
+
+@if (_profile is not null)
+{
+    <MudPaper Elevation="2" Class="pa-6">
+        <MudGrid>
+            <MudItem xs="12" md="4" Class="text-center">
+                @if (!string.IsNullOrEmpty(_profile.PhotoBase64))
+                {
+                    <MudAvatar Size="Size.Large" Class="mb-4 mx-auto">
+                        <img src="data:image/png;base64,@_profile.PhotoBase64" alt="foto" />
+                    </MudAvatar>
+                }
+                <MudFileUpload T="IBrowserFile" Accept=".png,.jpg,.jpeg" OnFilesChanged="OnPhotoUploaded">
+                    <ActivatorContent>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small">
+                            Alterar Foto
+                        </MudButton>
+                    </ActivatorContent>
+                </MudFileUpload>
+            </MudItem>
+            <MudItem xs="12" md="8">
+                <EditForm Model="_profile" OnValidSubmit="SaveProfile">
+                    <MudTextField @bind-Value="_profile.Username" Label="Usuário" Variant="Variant.Outlined"
+                                  Disabled="true" Class="mb-3" />
+                    <MudTextField @bind-Value="_profile.FullName" Label="Nome Completo" Variant="Variant.Outlined"
+                                  Required="true" Class="mb-3" />
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">
+                        Pergunta de segurança: @_profile.SecurityQuestion
+                    </MudText>
+                    <MudDivider Class="my-4" />
+
+                    <MudExpansionPanels>
+                        <MudExpansionPanel Text="Alterar Senha">
+                            <div>
+                                <MudTextField @bind-Value="_changePasswordModel.CurrentPassword" Label="Senha Atual"
+                                              InputType="InputType.Password" Variant="Variant.Outlined" Required="true" Class="mb-2" />
+                                <MudTextField @bind-Value="_changePasswordModel.NewPassword" Label="Nova Senha"
+                                              InputType="InputType.Password" Variant="Variant.Outlined" Required="true" Class="mb-2" />
+                                <MudTextField @bind-Value="_changePasswordModel.ConfirmNewPassword" Label="Confirmar Nova Senha"
+                                              InputType="InputType.Password" Variant="Variant.Outlined" Required="true" Class="mb-3" />
+                                <MudButton OnClick="ChangePasswordAction" Variant="Variant.Filled" Color="Color.Warning">
+                                    Alterar Senha
+                                </MudButton>
+                            </div>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+
+                    <div class="mt-4">
+                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">
+                            Salvar Alterações
+                        </MudButton>
+                    </div>
+                </EditForm>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+
+@code {
+    private UserProfileDto? _profile;
+    private ChangePasswordDto _changePasswordModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserState.CurrentUser is not null)
+            _profile = await AuthService.GetProfileAsync(UserState.CurrentUser.Id);
+    }
+
+    private async Task SaveProfile()
+    {
+        try
+        {
+            if (_profile is null) return;
+            var updated = await AuthService.UpdateProfileAsync(_profile.Id, new UpdateProfileDto
+            {
+                FullName = _profile.FullName,
+                PhotoBase64 = _profile.PhotoBase64
+            });
+            if (updated is not null)
+            {
+                UserState.SetUser(updated);
+                Snackbar.Add("Perfil atualizado.", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ChangePasswordAction()
+    {
+        try
+        {
+            if (_profile is null) return;
+            var success = await AuthService.ChangePasswordAsync(_profile.Id, _changePasswordModel);
+            if (success)
+            {
+                Snackbar.Add("Senha alterada com sucesso.", Severity.Success);
+                _changePasswordModel = new();
+            }
+            else
+            {
+                Snackbar.Add("Senha atual incorreta.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OnPhotoUploaded(InputFileChangeEventArgs e)
+    {
+        if (e.FileCount == 0 || _profile is null) return;
+        var file = e.File;
+        var buffer = new byte[file.Size];
+        await file.OpenReadStream(5 * 1024 * 1024).ReadAsync(buffer);
+        _profile.PhotoBase64 = Convert.ToBase64String(buffer);
+    }
+}

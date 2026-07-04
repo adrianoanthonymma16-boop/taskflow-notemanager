@@ -1,0 +1,258 @@
+@page "/dashboard"
+@rendermode InteractiveServer
+@inject ITaskService TaskService
+@inject INoteService NoteService
+@inject UserStateService UserState
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h4" Class="mb-4">
+    <MudIcon Icon="Icons.Material.Filled.Dashboard" Class="mr-2" />
+    Dashboard
+</MudText>
+
+@if (_loaded)
+{
+    <div class="d-flex flex-wrap gap-3 mb-6" style="justify-content:space-between">
+        <div class="stat-card" style="flex:1;min-width:180px;background:#e3f2fd;padding:20px;border-radius:8px;text-align:center">
+            <div style="font-size:2.2rem;font-weight:bold;color:#1565c0">@_openCount</div>
+            <div style="color:#1565c0;font-weight:500">Tarefas Abertas</div>
+        </div>
+        <div class="stat-card" style="flex:1;min-width:180px;background:#fff3e0;padding:20px;border-radius:8px;text-align:center">
+            <div style="font-size:2.2rem;font-weight:bold;color:#e65100">@_pendingCount</div>
+            <div style="color:#e65100;font-weight:500">Pendentes</div>
+        </div>
+        <div class="stat-card" style="flex:1;min-width:180px;background:#e8f5e9;padding:20px;border-radius:8px;text-align:center">
+            <div style="font-size:2.2rem;font-weight:bold;color:#2e7d32">@_completedCount</div>
+            <div style="color:#2e7d32;font-weight:500">Concluídas</div>
+        </div>
+        <div class="stat-card" style="flex:1;min-width:180px;background:#f3e5f5;padding:20px;border-radius:8px;text-align:center">
+            <div style="font-size:2.2rem;font-weight:bold;color:#7b1fa2">@_noteCount</div>
+            <div style="color:#7b1fa2;font-weight:500">Notas</div>
+        </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:16px">
+        <div style="flex:1;min-width:350px">
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="Icons.Material.Filled.Warning" Class="mr-1" Color="Color.Error" />
+                    Atrasadas (@_overdueTasks.Count)
+                </MudText>
+                @if (_overdueTasks.Count == 0)
+                {
+                    <MudText Color="Color.Secondary">Nenhuma tarefa atrasada.</MudText>
+                    <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                               OnClick='() => Navigation.NavigateTo("/tasks")'>
+                        Ver todas as tarefas
+                    </MudButton>
+                }
+                else
+                {
+                    @foreach (var t in _overdueTasks)
+                    {
+                        <div style="padding:8px 0;border-bottom:1px solid #eee;cursor:pointer"
+                             @onclick='() => Navigation.NavigateTo("/tasks")'>
+                            <MudText Style="font-weight:500">@t.Title</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Error">
+                                Prazo: @t.DueDate?.ToString("dd/MM/yyyy") — @GetDaysLate(t.DueDate)
+                            </MudText>
+                        </div>
+                    }
+                }
+            </MudPaper>
+
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="Icons.Material.Filled.Task" Class="mr-1" Color="Color.Primary" />
+                    Tarefas Recentes
+                </MudText>
+                @if (_recentTasks.Count == 0)
+                {
+                    <MudText Color="Color.Secondary" Class="mb-3">Nenhuma tarefa cadastrada.</MudText>
+                    <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                               OnClick='() => Navigation.NavigateTo("/tasks")'>
+                        Criar Tarefa
+                    </MudButton>
+                }
+                else
+                {
+                    @foreach (var t in _recentTasks)
+                    {
+                        <div style="padding:8px 0;border-bottom:1px solid #eee;cursor:pointer"
+                             @onclick='() => Navigation.NavigateTo("/tasks")'>
+                            <MudText Style="font-weight:500;color:#1565c0">@t.Title</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @GetStatusLabel(t.Status) — @t.CreatedAt.ToString("dd/MM/yyyy")
+                            </MudText>
+                        </div>
+                    }
+                }
+            </MudPaper>
+
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="Icons.Material.Filled.Event" Class="mr-1" Color="Color.Info" />
+                    Prazos desta semana (@_thisWeekTasks.Count)
+                </MudText>
+                @if (_thisWeekTasks.Count == 0)
+                {
+                    <MudText Color="Color.Secondary">Nenhum prazo esta semana.</MudText>
+                }
+                else
+                {
+                    @foreach (var t in _thisWeekTasks)
+                    {
+                        <div style="padding:8px 0;border-bottom:1px solid #eee">
+                            <MudText Style="font-weight:500">@t.Title</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Primary">
+                                Prazo: @t.DueDate?.ToString("dd/MM/yyyy") — @t.StatusName
+                            </MudText>
+                        </div>
+                    }
+                }
+            </MudPaper>
+        </div>
+
+        <div style="flex:1;min-width:350px">
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="Icons.Material.Filled.BarChart" Class="mr-1" />
+                    Distribuição de Status
+                </MudText>
+                @if (_allTasks.Count > 0)
+                {
+                    var total = Math.Max(_allTasks.Count, 1);
+                    <div style="margin-bottom:12px">
+                        <div style="display:flex;justify-content:space-between">
+                            <span>Abertas</span><span>@_openCount (@((_openCount * 100 / total))%)</span>
+                        </div>
+                        <div style="height:8px;background:#e0e0e0;border-radius:4px;margin-top:4px">
+                            <div style="height:8px;width:@(_openCount * 100 / total)%;background:#1565c0;border-radius:4px"></div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:12px">
+                        <div style="display:flex;justify-content:space-between">
+                            <span>Pendentes</span><span>@_pendingCount (@((_pendingCount * 100 / total))%)</span>
+                        </div>
+                        <div style="height:8px;background:#e0e0e0;border-radius:4px;margin-top:4px">
+                            <div style="height:8px;width:@(_pendingCount * 100 / total)%;background:#e65100;border-radius:4px"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="display:flex;justify-content:space-between">
+                            <span>Concluídas</span><span>@_completedCount (@((_completedCount * 100 / total))%)</span>
+                        </div>
+                        <div style="height:8px;background:#e0e0e0;border-radius:4px;margin-top:4px">
+                            <div style="height:8px;width:@(_completedCount * 100 / total)%;background:#2e7d32;border-radius:4px"></div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <MudText Color="Color.Secondary">Nenhuma tarefa cadastrada.</MudText>
+                }
+            </MudPaper>
+
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="Icons.Material.Filled.Note" Class="mr-1" Color="Color.Secondary" />
+                    Notas Recentes
+                </MudText>
+                @if (_recentNotes.Count == 0)
+                {
+                    <MudText Color="Color.Secondary" Class="mb-3">Nenhuma nota cadastrada.</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                               OnClick='() => Navigation.NavigateTo("/notes")' StartIcon="Icons.Material.Filled.Add">
+                        Criar Nota
+                    </MudButton>
+                }
+                else
+                {
+                    @foreach (var n in _recentNotes)
+                    {
+                        <div style="padding:8px 0;border-bottom:1px solid #eee;cursor:pointer"
+                             @onclick='() => Navigation.NavigateTo("/notes")'>
+                            <MudText Style="font-weight:500;color:#1565c0">@n.Title</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @n.StatusName — @n.CreatedAt.ToString("dd/MM/yyyy")
+                            </MudText>
+                        </div>
+                    }
+                }
+            </MudPaper>
+        </div>
+    </div>
+}
+else
+{
+    <MudText Color="Color.Secondary">Carregando...</MudText>
+}
+
+@code {
+    private bool _loaded;
+    private List<TaskDto> _allTasks = new();
+    private List<TaskDto> _overdueTasks = new();
+    private List<TaskDto> _thisWeekTasks = new();
+    private List<TaskDto> _recentTasks = new();
+    private List<NoteDto> _recentNotes = new();
+    private int _openCount;
+    private int _pendingCount;
+    private int _completedCount;
+    private int _noteCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserState.CurrentUser is null) return;
+        await LoadDashboard();
+        _loaded = true;
+    }
+
+    private async Task LoadDashboard()
+    {
+        if (UserState.CurrentUser is null) return;
+        var uid = UserState.CurrentUser.Id;
+
+        _allTasks = await TaskService.GetByOwnerAsync(uid);
+        _openCount = _allTasks.Count(t => t.Status == 0);
+        _pendingCount = _allTasks.Count(t => t.Status == 1);
+        _completedCount = _allTasks.Count(t => t.Status == 2);
+
+        var today = DateTime.Today;
+        _overdueTasks = _allTasks
+            .Where(t => t.DueDate.HasValue && t.DueDate.Value.Date < today && t.Status == 0)
+            .OrderBy(t => t.DueDate)
+            .Take(10)
+            .ToList();
+
+        var weekEnd = today.AddDays(7);
+        _thisWeekTasks = _allTasks
+            .Where(t => t.DueDate.HasValue && t.DueDate.Value.Date >= today && t.DueDate.Value.Date <= weekEnd)
+            .OrderBy(t => t.DueDate)
+            .ToList();
+
+        _recentTasks = _allTasks
+            .OrderByDescending(t => t.CreatedAt)
+            .Take(5)
+            .ToList();
+
+        var notes = await NoteService.GetByOwnerAsync(uid);
+        _noteCount = notes.Count;
+        _recentNotes = notes.OrderByDescending(n => n.CreatedAt).Take(5).ToList();
+    }
+
+    private static string GetStatusLabel(int status) => status switch
+    {
+        0 => "Aberta",
+        1 => "Pendente",
+        2 => "Concluída",
+        _ => ""
+    };
+
+    private static string GetDaysLate(DateTime? dueDate)
+    {
+        if (!dueDate.HasValue) return "";
+        var days = (DateTime.Today - dueDate.Value.Date).Days;
+        return days == 0 ? "Hoje" : $"{days} dia{(days > 1 ? "s" : "")} de atraso";
+    }
+}

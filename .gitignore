@@ -1,0 +1,15 @@
+bin/
+obj/
+*.user
+*.suo
+*.cache
+.vs/
+.vscode/
+dist/
+*.db
+*.db-shm
+*.db-wal
+**/Uploads/
+**/VisualPdfs/
+/tmp/
+*.log

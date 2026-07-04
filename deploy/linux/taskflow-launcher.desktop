@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=TaskFlow NoteManager
+Comment=Gerenciador de tarefas e notas offline — abre no navegador
+Exec=/usr/local/bin/taskflow/TaskFlow_Launcher.sh
+Icon=web-browser
+Terminal=false
+Categories=Office;Utility;
+Keywords=task;note;manager;pdf;signature;offline;
+StartupWMClass=taskflow
