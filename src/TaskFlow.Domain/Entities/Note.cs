@@ -10,6 +10,9 @@ public class Note
     /// <summary> Identificador único da nota. </summary>
     public int Id { get; set; }
 
+    /// <summary> Número sequencial da nota por usuário. </summary>
+    public int NoteNumber { get; set; }
+
     /// <summary> ID do usuário proprietário da nota. </summary>
     public int OwnerId { get; set; }
 

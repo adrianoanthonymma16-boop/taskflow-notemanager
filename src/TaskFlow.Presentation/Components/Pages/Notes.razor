@@ -37,7 +37,7 @@ else
         <MudPaper Elevation="1" Class="pa-4 mb-3">
             <div class="d-flex justify-space-between align-start">
                 <div>
-                    <MudText Typo="Typo.h6">@note.Title</MudText>
+                    <MudText Typo="Typo.h6">#@note.NoteNumber — @note.Title</MudText>
                     <MudText Color="@GetStatusColor(note.Status)" Typo="Typo.caption">
                         <strong>@note.StatusName</strong> — @note.CreatedAt.ToString("dd/MM/yyyy")
                     </MudText>

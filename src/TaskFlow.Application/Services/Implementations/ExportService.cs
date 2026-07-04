@@ -115,6 +115,7 @@ public class ExportService : IExportService
             manifest.Notes = notes.Select(n => new NoteDto
             {
                 Id = n.Id,
+                NoteNumber = n.NoteNumber,
                 OwnerId = n.OwnerId,
                 Title = n.Title,
                 Content = n.Content,

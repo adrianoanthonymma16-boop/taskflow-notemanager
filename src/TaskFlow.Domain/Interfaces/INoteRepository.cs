@@ -22,4 +22,7 @@ public interface INoteRepository
 
     /// <summary> Remove uma nota pelo ID. </summary>
     Task DeleteAsync(int id);
+
+    /// <summary> Obtém o maior número de nota do usuário. </summary>
+    Task<int> GetMaxNoteNumberAsync(int ownerId);
 }

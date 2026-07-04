@@ -67,4 +67,12 @@ public class NoteRepository : INoteRepository
             await _context.SaveChangesAsync();
         }
     }
+
+    /// <inheritdoc/>
+    public async Task<int> GetMaxNoteNumberAsync(int ownerId)
+    {
+        return await _context.Notes
+            .Where(n => n.OwnerId == ownerId)
+            .MaxAsync(n => (int?)n.NoteNumber) ?? 0;
+    }
 }

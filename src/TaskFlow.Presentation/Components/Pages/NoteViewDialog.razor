@@ -5,12 +5,15 @@
 
 <MudDialog>
     <TitleContent>
-        <MudText Typo="Typo.h6">@Note.Title</MudText>
+        <MudText Typo="Typo.h6">#@Note.NoteNumber — @Note.Title</MudText>
     </TitleContent>
     <DialogContent>
         <MudText Class="mb-3">
             <strong>Status:</strong>
             <MudText Color="@GetStatusColor(Note.Status)" Typo="Typo.caption" Inline="true"><strong>@Note.StatusName</strong></MudText>
+        </MudText>
+        <MudText Class="mb-3" Color="Color.Secondary">
+            Criado em @Note.CreatedAt.ToString("dd/MM/yyyy")
         </MudText>
 
         @if (!string.IsNullOrWhiteSpace(Note.Content))

@@ -42,9 +42,12 @@ public class NoteService : INoteService
     /// <inheritdoc/>
     public async Task<NoteDto> CreateAsync(int ownerId, CreateNoteDto dto)
     {
+        var nextNumber = await _noteRepository.GetMaxNoteNumberAsync(ownerId) + 1;
+
         var note = new Note
         {
             OwnerId = ownerId,
+            NoteNumber = nextNumber,
             Title = dto.Title.Trim(),
             Content = dto.Content?.Trim() ?? string.Empty,
             Status = (Domain.Enums.NoteStatus)dto.Status,
@@ -123,6 +126,7 @@ public class NoteService : INoteService
         return new NoteDto
         {
             Id = note.Id,
+            NoteNumber = note.NoteNumber,
             OwnerId = note.OwnerId,
             Title = note.Title,
             Content = note.Content,
