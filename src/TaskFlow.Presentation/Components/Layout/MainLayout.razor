@@ -50,6 +50,16 @@
         UserState.OnStateChanged += () => InvokeAsync(StateHasChanged);
     }
 
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender && !UserState.IsAuthenticated)
+        {
+            var path = new Uri(Navigation.Uri).AbsolutePath;
+            if (path != "/login" && path != "/register" && path != "/recover-password")
+                Navigation.NavigateTo("/login", forceLoad: true);
+        }
+    }
+
     private async Task ToggleTheme()
     {
         await JS.InvokeVoidAsync("themeManager.toggle");
