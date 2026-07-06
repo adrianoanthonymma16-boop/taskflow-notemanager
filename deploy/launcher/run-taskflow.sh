@@ -1,6 +1,7 @@
 #!/bin/bash
 # TaskFlow NoteManager — Launcher
-PROJECT_DIR="/home/tony/Projetos/gerenciador_de_tarefas_e_notas/src/TaskFlow.Presentation"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$SCRIPT_DIR/../../src/TaskFlow.Presentation"
 PORT=5000
 URL="http://localhost:$PORT"
 
@@ -15,7 +16,7 @@ if curl -s -o /dev/null -w "%{http_code}" "$URL" 2>/dev/null | grep -qE "200|302
 fi
 
 echo "📦 Iniciando servidor em http://localhost:$PORT..."
-cd "$PROJECT_DIR" || { echo "❌ Diretório não encontrado"; exit 1; }
+cd "$PROJECT_DIR" || { echo "❌ Diretório não encontrado: $PROJECT_DIR"; exit 1; }
 dotnet run --urls "http://localhost:$PORT" &
 sleep 4
 echo "✅ Servidor iniciado!"

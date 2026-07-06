@@ -189,7 +189,7 @@ else
         await LoadTasks();
     }
 
-    private async Task OnTaskDialogCancel()
+    private void OnTaskDialogCancel()
     {
         _showTaskDialog = false;
     }
@@ -242,7 +242,7 @@ else
         await LoadTasks();
     }
 
-    private async Task CancelPending()
+    private void CancelPending()
     {
         _showPendingModal = false;
     }

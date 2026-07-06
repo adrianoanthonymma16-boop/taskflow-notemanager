@@ -100,7 +100,7 @@ public class ImportService : IImportService
                     OwnerId = loggedUserId,
                     OriginalFileName = request.FileName,
                     StoredPath = await _fileStorageService.CopyToVisualFolderAsync(
-                        await _fileStorageService.SaveFileAsync("VisualPdfs", request.FileName, new MemoryStream(request.FileBytes)),
+                        await _fileStorageService.SaveFileAsync("VisualPdfs", request.FileName, new MemoryStream(request.FileBytes), loggedUserId),
                         request.FileName),
                     SourceScope = (ImportScope)manifest.Scope,
                     IsExternal = true,
@@ -120,7 +120,7 @@ public class ImportService : IImportService
     /// <inheritdoc/>
     public async Task VisualImportAsync(int loggedUserId, byte[] fileBytes, string fileName)
     {
-        var storedPath = await _fileStorageService.SaveFileAsync("VisualPdfs", fileName, new MemoryStream(fileBytes));
+        var storedPath = await _fileStorageService.SaveFileAsync("VisualPdfs", fileName, new MemoryStream(fileBytes), loggedUserId);
 
         await _visualPdfRecordRepository.AddAsync(new VisualPdfRecord
         {

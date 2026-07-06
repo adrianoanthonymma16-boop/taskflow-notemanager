@@ -4,49 +4,50 @@
 @inject UserStateService UserState
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
-@inject NavigationManager Navigation
 
-<MudText Typo="Typo.h4" Class="mb-6">Exportar Dados</MudText>
+<h1 style="margin-bottom:24px;font-size:2rem;font-weight:600;color:var(--text)">Exportar Dados</h1>
 
-<MudPaper Elevation="2" Class="pa-6">
-    <MudGrid>
-        <MudItem xs="12" md="6">
-            <MudPaper Elevation="1" Class="pa-4 mb-4">
-                <MudText Typo="Typo.h6" Class="mb-3">PDF de Dados (Backup)</MudText>
-                <MudText Class="mb-3" Color="Color.Secondary">
+<div style="padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.15);border-radius:8px;background:var(--surface);margin-bottom:24px">
+    <div style="display:flex;flex-wrap:wrap;gap:24px">
+        <div style="flex:1 1 calc(50% - 12px);min-width:300px">
+            <div style="padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.1);border-radius:8px;background:var(--surface);margin-bottom:16px">
+                <h3 style="margin-bottom:12px;font-size:1.25rem;font-weight:500;color:var(--text)">PDF de Dados (Backup)</h3>
+                <p style="margin-bottom:12px;color:var(--text-secondary);line-height:1.5">
                     Gera um PDF com dados estruturados (JSON) para importação futura ou transferência entre máquinas.
-                </MudText>
+                </p>
                 <select style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:4px;font-size:16px;font-family:inherit;background:var(--surface);color:var(--text);margin-bottom:12px"
                         value="@_dataScope" @onchange="OnDataScopeChanged">
                     <option value="1">Apenas Tarefas</option>
                     <option value="2">Apenas Notas</option>
                     <option value="3">Sistema Completo</option>
                 </select>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportDataPdf" Disabled="_isExporting">
+                <button style="padding:10px 24px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-size:14px;font-weight:500;cursor:pointer;opacity:@(_isExporting ? "0.6" : "1")"
+                        @onclick="ExportDataPdf" disabled="@_isExporting">
                     Gerar PDF de Dados
-                </MudButton>
-            </MudPaper>
-        </MudItem>
+                </button>
+            </div>
+        </div>
 
-        <MudItem xs="12" md="6">
-            <MudPaper Elevation="1" Class="pa-4 mb-4">
-                <MudText Typo="Typo.h6" Class="mb-3">PDF de Visualização (Impressão)</MudText>
-                <MudText Class="mb-3" Color="Color.Secondary">
+        <div style="flex:1 1 calc(50% - 12px);min-width:300px">
+            <div style="padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.1);border-radius:8px;background:var(--surface);margin-bottom:16px">
+                <h3 style="margin-bottom:12px;font-size:1.25rem;font-weight:500;color:var(--text)">PDF de Visualização (Impressão)</h3>
+                <p style="margin-bottom:12px;color:var(--text-secondary);line-height:1.5">
                     Gera um PDF com layout visual para leitura humana ou impressão física.
-                </MudText>
+                </p>
                 <select style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:4px;font-size:16px;font-family:inherit;background:var(--surface);color:var(--text);margin-bottom:12px"
                         value="@_visualScope" @onchange="OnVisualScopeChanged">
                     <option value="1">Apenas Tarefas</option>
                     <option value="2">Apenas Notas</option>
                     <option value="3">Sistema Completo</option>
                 </select>
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="ExportVisualPdf" Disabled="_isExporting">
+                <button style="padding:10px 24px;background:#546e7a;color:#fff;border:none;border-radius:4px;font-size:14px;font-weight:500;cursor:pointer;opacity:@(_isExporting ? "0.6" : "1")"
+                        @onclick="ExportVisualPdf" disabled="@_isExporting">
                     Gerar PDF Visual
-                </MudButton>
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
-</MudPaper>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @code {
     private int _dataScope = 3;

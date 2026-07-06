@@ -3,12 +3,11 @@
 @inject IImportService ImportService
 @inject UserStateService UserState
 @inject ISnackbar Snackbar
-@inject NavigationManager Navigation
 
-<MudText Typo="Typo.h4" Class="mb-6">Importar Dados</MudText>
+<h1 style="margin-bottom:24px;font-size:2rem;font-weight:600;color:var(--text)">Importar Dados</h1>
 
-<MudPaper Elevation="2" Class="pa-6">
-    <MudText Typo="Typo.h6" Class="mb-4">Upload de PDF para Importação</MudText>
+<div style="padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.15);border-radius:8px;background:var(--surface);margin-bottom:24px">
+    <h3 style="margin-bottom:16px;font-size:1.25rem;font-weight:500;color:var(--text)">Upload de PDF para Importação</h3>
 
     <select style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:4px;font-size:16px;font-family:inherit;background:var(--surface);color:var(--text);margin-bottom:12px"
             value="@_conflictStrategy" @onchange="OnConflictChanged">
@@ -17,7 +16,7 @@
         <option value="2">Anexar (só insere novos)</option>
     </select>
 
-    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:12px;font-size:16px">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:12px;font-size:16px;color:var(--text)">
         <input type="checkbox" checked="@_filterByDate" @onchange="OnFilterByDateChanged" />
         Filtrar por período
     </label>
@@ -27,27 +26,34 @@
         <div style="display:flex;gap:12px;margin-bottom:12px">
             <input type="date" value="@(_startDate?.ToString("yyyy-MM-dd") ?? "")"
                    @onchange="OnStartDateChanged"
-                    style="flex:1;padding:12px;border:1px solid var(--border);border-radius:4px;font-size:16px" />
+                    style="flex:1;padding:12px;border:1px solid var(--border);border-radius:4px;font-size:16px;font-family:inherit;background:var(--surface);color:var(--text)" />
             <input type="date" value="@(_endDate?.ToString("yyyy-MM-dd") ?? "")"
                     @onchange="OnEndDateChanged"
-                    style="flex:1;padding:12px;border:1px solid var(--border);border-radius:4px;font-size:16px" />
+                    style="flex:1;padding:12px;border:1px solid var(--border);border-radius:4px;font-size:16px;font-family:inherit;background:var(--surface);color:var(--text)" />
         </div>
     }
 
-    <MudFileUpload T="IBrowserFile" Accept=".pdf" OnFilesChanged="OnFileSelected">
-        <ActivatorContent>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="Icons.Material.Filled.FileUpload" Disabled="_isImporting">
-                Selecionar PDF e Importar
-            </MudButton>
-        </ActivatorContent>
-    </MudFileUpload>
+    <label style="display:inline-flex;align-items:center;gap:8px;padding:10px 24px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-size:14px;font-weight:500;cursor:pointer;opacity:@(_isImporting ? "0.6" : "1")">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right:4px"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+        Selecionar PDF e Importar
+        <InputFile Accept=".pdf" OnChange="OnFileSelected" disabled="@_isImporting" style="display:none" />
+    </label>
 
     @if (_isImporting)
     {
-        <MudProgressLinear Indeterminate="true" Class="mt-3" />
+        <div style="margin-top:12px;height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:30%;background:var(--primary);animation:indeterminate 1.5s ease-in-out infinite;border-radius:2px"></div>
+        </div>
     }
-</MudPaper>
+</div>
+
+<style>
+    @@keyframes indeterminate {
+        0% { margin-left: -30%; width: 30%; }
+        50% { margin-left: 35%; width: 30%; }
+        100% { margin-left: 100%; width: 0%; }
+    }
+</style>
 
 @code {
     private int _conflictStrategy = 1;

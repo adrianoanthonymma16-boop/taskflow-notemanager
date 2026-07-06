@@ -83,7 +83,7 @@ public class NoteService : INoteService
     /// <inheritdoc/>
     public async Task<AttachmentDto?> AddAttachmentAsync(int noteId, int ownerId, string fileName, string fileType, long fileSize, Stream fileStream)
     {
-        var filePath = await _fileStorageService.SaveFileAsync("Uploads", $"{Guid.NewGuid()}_{fileName}", fileStream);
+        var filePath = await _fileStorageService.SaveFileAsync("Uploads", $"{Guid.NewGuid()}_{fileName}", fileStream, ownerId);
 
         var attachment = new Attachment
         {

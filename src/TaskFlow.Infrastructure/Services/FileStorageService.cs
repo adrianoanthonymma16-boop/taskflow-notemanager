@@ -21,9 +21,11 @@ public class FileStorageService : IFileStorageService
     }
 
     /// <inheritdoc/>
-    public async Task<string> SaveFileAsync(string subfolder, string fileName, Stream fileStream)
+    public async Task<string> SaveFileAsync(string subfolder, string fileName, Stream fileStream, int userId = 0)
     {
-        var dir = Path.Combine(_baseDir, subfolder);
+        var dir = userId > 0
+            ? Path.Combine(_baseDir, subfolder, userId.ToString())
+            : Path.Combine(_baseDir, subfolder);
         Directory.CreateDirectory(dir);
 
         var filePath = Path.Combine(dir, fileName);

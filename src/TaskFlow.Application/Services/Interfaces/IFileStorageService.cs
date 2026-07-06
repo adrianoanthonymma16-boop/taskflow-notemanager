@@ -6,7 +6,7 @@ namespace TaskFlow.Application.Services.Interfaces;
 public interface IFileStorageService
 {
     /// <summary> Salva um arquivo no sistema de arquivos e retorna o caminho completo. </summary>
-    Task<string> SaveFileAsync(string subfolder, string fileName, Stream fileStream);
+    Task<string> SaveFileAsync(string subfolder, string fileName, Stream fileStream, int userId = 0);
 
     /// <summary> Remove um arquivo do sistema de arquivos. </summary>
     Task DeleteFileAsync(string filePath);
