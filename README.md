@@ -14,26 +14,28 @@
 |---|---|
 | No internet available at the workspace | 100% offline — runs on `localhost:5000`, no cloud dependency |
 | Need for task tracking with deadlines | Full CRUD with due dates, status flow (Open → Pending → Completed), and overdue warnings |
-| Tasks blocked by third parties | Pending logs with reason, counterparty name, and resolution tracking |
-| Unstructured notes scattered across files | Centralized notes with title, content, status (Draft/Published/Archived) |
-| Document attachments mixed with notes | File upload (PDF, DOC, DOCX) attached directly to notes |
-| Data portability between machines | PDF export with embedded JSON data + visual printable PDF reports |
+| Tasks blocked by third parties | Pending logs with reason, counterparty name, signature capture, and resolution tracking |
+| Unstructured notes scattered across files | Centralized notes with title, content, status (Draft/Published/Archived), and file attachments |
+| Document attachments mixed with notes | File upload (PDF, DOC, DOCX) attached directly to notes, isolated per user |
+| Data portability between machines | PDF export with MigrationId (TF-timestamp), JSON data + visual report with summary bar |
 | Cross-platform desktop usage | Single self-contained executable — works on Windows and Linux |
 | Multiple users on the same machine | Per-user accounts with BCrypt password hashing, security questions for recovery |
-| Complex tools for simple workflows | Clean, card-based UI; one-click actions; native browser date pickers and selects |
+| Complex tools for simple workflows | Clean HTML-native modals, native browser form elements, one-click actions |
 
 ### Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Language | C# 12 / .NET 8 LTS |
-| Framework | Blazor Server (interactive via SignalR) |
+| Framework | Blazor Server (interactive via SignalR, CircuitOptions configured) |
 | Database | SQLite (EF Core 8) |
-| UI Library | MudBlazor 8.5 |
-| PDF Generation | QuestPDF |
+| UI — Dialogs | 100% native HTML + CSS inline modals (zero MudBlazor in dialogs) |
+| UI — Layout | MudBlazor 8.5 (AppBar, Drawer, NavMenu, Snackbar) |
+| PDF Generation | QuestPDF 2024.12 |
 | Password Hashing | BCrypt.Net-Next |
-| Object Mapping | AutoMapper |
-| Testing | xUnit + Moq + FluentAssertions |
+| Object Mapping | AutoMapper 12.0 |
+| Testing | xUnit + Moq + FluentAssertions (16 tests) |
+| Signatures | signature-pad.js (HTML5 canvas mouse/touch drawing as Base64 PNG) |
 
 ### Architecture — Clean Architecture
 
@@ -44,44 +46,47 @@ Application (Use cases, DTOs, Service interfaces)
     ↓ depends on
 Domain (Entities, Enums, Repository interfaces)
     ↑ implements
-Infrastructure (EF Core DbContext, Repositories, PDF services)
+Infrastructure (EF Core DbContext, Repositories, PDF services, FileStorage)
 ```
 
 | Project | Responsibility |
 |---|---|
 | `TaskFlow.Domain` | Entities (`User`, `TaskItem`, `PendingLog`, `Note`, `Attachment`, `VisualPdfRecord`), Enums, Repository interfaces |
-| `TaskFlow.Application` | DTOs, Service interfaces (`IAuthService`, `ITaskService`, `INoteService`, `IExportService`, `IImportService`), Implementations, AutoMapper |
-| `TaskFlow.Infrastructure` | `AppDbContext` (SQLite), Repository implementations, `FileStorageService`, QuestPDF generators, DI configuration |
-| `TaskFlow.Presentation` | Blazor Server pages, MudBlazor layout, JS interop, theme system |
+| `TaskFlow.Application` | DTOs, Service interfaces, Implementations (Auth, Task, Note, Export, Import), AutoMapper |
+| `TaskFlow.Infrastructure` | `AppDbContext` (SQLite), Repository implementations, `FileStorageService` (user-isolated), QuestPDF generators, DI |
+| `TaskFlow.Presentation` | Blazor Server pages with HTML-native inline modals, MudBlazor layout, JS interop, CSS theme system |
 
 ### Features
 
 - **Identity**: Registration, login, password recovery via security question, profile editing with photo
 - **TaskFlow (Tasks)**:
   - CRUD with title, description, due date
+  - **Inline view modal** with full details, pending history, signatures, actions
+  - **Pending system**: create pending logs with reason, counterparty, and hand-drawn signatures
   - Status flow: Open → Pending → Completed (with reopen)
-  - Pending logs with reason and counterparty
-  - Resolve pending (reopens task)
+  - Block completion when active pending exists
   - Filter by status
   - Overdue warnings on cards and Dashboard
-  - Dashboard with statistics, overdue tasks, weekly deadlines, status distribution
 - **NoteManager (Notes)**:
+  - Clickable note cards open full detail modal
   - CRUD with title, content, status (Draft/Published/Archived)
-  - File upload attachment system (PDF, DOC, DOCX)
+  - File upload attachment system (PDF, DOC, DOCX) saved in user-isolated directory
   - Attachment listing with file size formatting
 - **Export**:
-  - **Type 1 — Data PDF**: embedded JSON for machine transfer/backup
-  - **Type 2 — Visual PDF**: formatted tables and full note content for printing
+  - **Type 1 — Data PDF**: embedded JSON with MigrationId for machine transfer/backup
+  - **Type 2 — Visual PDF**: comprehensive report with summary bar, all task/note details, pending logs, signatures, migration metadata
   - Scope selection (Tasks only, Notes only, or Full System)
+  - PDF opens in browser tab + downloads
 - **Import**:
   - **Mode A — Data import**: restore from Type 1 PDFs
     - Conflict strategies: Replace, Merge, Append
     - Date filtering for selective import
-    - External ownership detection with Integrate/Visual/Cancel options
+    - External ownership detection
   - **Mode B — Visual import**: store any PDF for offline reading
-- **Dashboard**: Task counts (Open/Pending/Completed), note count, overdue list, weekly deadlines, status distribution bars, recent tasks and notes
-- **Dark Mode**: Native CSS-based gray-tone dark theme with localStorage persistence
-- **Single Instance**: Global Mutex prevents duplicate app execution
+- **Dashboard**: Task counts, note count, overdue list, weekly deadlines, status distribution
+- **Dark Mode**: CSS-based theme with localStorage persistence (light/dark toggle)
+- **Single Instance**: Cross-platform Mutex + .lock file prevents duplicate app execution
+- **SignalR Production Config**: CircuitOptions (5min retention, 120s JS timeout), HubOptions (64MB msg, 15s keepalive)
 
 ### Dependencies
 
@@ -100,35 +105,34 @@ cd taskflow-notemanager
 cd src/TaskFlow.Presentation
 dotnet run
 
-# Open browser at
-# http://localhost:5000
+# Opens at http://localhost:5000
 ```
 
-### Desktop Shortcuts
+### Desktop Shortcut (Linux)
 
-#### Linux
-
-Create a `.desktop` file on your desktop:
+The launcher kills any previous server, rebuilds, and starts fresh every time:
 
 ```bash
-cat > ~/Desktop/taskflow-notemanager.desktop << 'EOF'
+cat > ~/Desktop/taskflow.desktop << 'EOF'
 [Desktop Entry]
+Version=2.0
 Type=Application
 Name=TaskFlow NoteManager
 Comment=Gerenciador de tarefas e notas offline
-Exec=/home/$USER/Projetos/gerenciador_de_tarefas_e_notas/deploy/launcher/run-taskflow.sh
-Icon=text-editor
+Exec=SEU_CAMINHO/deploy/launcher/run-taskflow.sh
+Icon=SEU_CAMINHO/src/TaskFlow.Presentation/wwwroot/taskflow-icon.svg
 Terminal=false
 Categories=Office;Utility;
-Keywords=task;note;manager;pdf;signature;offline;
-StartupWMClass=taskflow
+StartupNotify=true
+StartupWMClass=TaskFlow
 EOF
 
-chmod +x ~/Desktop/taskflow-notemanager.desktop
+chmod +x ~/Desktop/taskflow.desktop
+gio set ~/Desktop/taskflow.desktop metadata::trusted true
 ```
 
-> Adjust `Exec=` to point to `deploy/launcher/run-taskflow.sh` inside your project directory.
-> Right-click the icon on your desktop and select **"Allow Launching"** if prompted.
+> Replace `SEU_CAMINHO` with your absolute project path (e.g., `/home/tony/Projetos/gerenciador_de_tarefas_e_notas`).
+> The SVG icon is auto-generated at `src/TaskFlow.Presentation/wwwroot/taskflow-icon.svg`.
 
 #### Windows
 
@@ -137,9 +141,8 @@ Create a shortcut to `deploy\launcher\TaskFlow_Launcher.bat`:
 1. Right-click on your Desktop → **New → Shortcut**
 2. Browse to `C:\Users\%USERNAME%\...\deploy\launcher\TaskFlow_Launcher.bat`
 3. Name it `TaskFlow NoteManager`
-4. Right-click the shortcut → **Properties → Change Icon** (optional)
 
-Or via command line (PowerShell):
+Or via PowerShell:
 
 ```powershell
 $WScriptShell = New-Object -ComObject WScript.Shell
@@ -174,12 +177,6 @@ This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-## Licença
-
-Este projeto está licenciado sob a [Licença MIT](LICENSE).
-
----
-
 © 2024 TaskFlow NoteManager. Distributed under the MIT License.
 
 ---
@@ -194,26 +191,28 @@ Este projeto está licenciado sob a [Licença MIT](LICENSE).
 |---|---|
 | Sem internet no local de trabalho | 100% offline — roda em `localhost:5000`, sem dependência de nuvem |
 | Necessidade de acompanhar tarefas com prazos | CRUD completo com datas de prazo, fluxo de status (Aberta → Pendente → Concluída) e avisos de atraso |
-| Tarefas bloqueadas por terceiros | Logs de pendência com motivo, nome da contraparte e rastreamento de resolução |
-| Notas desestruturadas espalhadas em arquivos | Notas centralizadas com título, conteúdo e status (Rascunho/Publicado/Arquivado) |
-| Documentos anexos misturados com notas | Upload de arquivos (PDF, DOC, DOCX) anexados diretamente às notas |
-| Portabilidade de dados entre máquinas | Exportação PDF com JSON embutido + relatórios visuais para impressão |
+| Tarefas bloqueadas por terceiros | Logs de pendência com motivo, contraparte, captura de assinatura e rastreamento de resolução |
+| Notas desestruturadas espalhadas em arquivos | Notas centralizadas com título, conteúdo e status (Rascunho/Publicado/Arquivado) e anexos |
+| Documentos anexos misturados com notas | Upload de arquivos (PDF, DOC, DOCX) anexados diretamente às notas, isolados por usuário |
+| Portabilidade de dados entre máquinas | Exportação PDF com MigrationId (TF-timestamp), JSON + relatório visual com barra de resumo |
 | Uso em múltiplos sistemas operacionais | Executável auto-contido único — funciona no Windows e Linux |
 | Múltiplos usuários na mesma máquina | Contas por usuário com hash BCrypt, pergunta de segurança para recuperação |
-| Ferramentas complexas para fluxos simples | Interface limpa baseada em cards, ações com um clique, calendários nativos do navegador |
+| Ferramentas complexas para fluxos simples | Modais HTML nativos, elementos de formulário nativos, ações com um clique |
 
 ### Pilha Tecnológica
 
 | Camada | Tecnologia |
 |---|---|
 | Linguagem | C# 12 / .NET 8 LTS |
-| Framework | Blazor Server (interativo via SignalR) |
+| Framework | Blazor Server (interativo via SignalR, CircuitOptions configurado) |
 | Banco de dados | SQLite (EF Core 8) |
-| Biblioteca UI | MudBlazor 8.5 |
-| Geração de PDF | QuestPDF |
+| UI — Dialogs | 100% HTML nativo + CSS inline (zero MudBlazor nos modais) |
+| UI — Layout | MudBlazor 8.5 (AppBar, Drawer, NavMenu, Snackbar) |
+| Geração de PDF | QuestPDF 2024.12 |
 | Hash de senhas | BCrypt.Net-Next |
-| Mapeamento de objetos | AutoMapper |
-| Testes | xUnit + Moq + FluentAssertions |
+| Mapeamento de objetos | AutoMapper 12.0 |
+| Testes | xUnit + Moq + FluentAssertions (16 testes) |
+| Assinaturas | signature-pad.js (canvas HTML5 para desenho mouse/touch em Base64 PNG) |
 
 ### Arquitetura — Clean Architecture
 
@@ -224,44 +223,47 @@ Application (Casos de uso, DTOs, Interfaces de serviço)
     ↓ depende de
 Domain (Entidades, Enums, Interfaces de repositório)
     ↑ implementa
-Infrastructure (EF Core DbContext, Repositórios, Serviços PDF)
+Infrastructure (EF Core DbContext, Repositórios, Serviços PDF, FileStorage)
 ```
 
 | Projeto | Responsabilidade |
 |---|---|
 | `TaskFlow.Domain` | Entidades (`User`, `TaskItem`, `PendingLog`, `Note`, `Attachment`, `VisualPdfRecord`), Enums, Interfaces de repositório |
-| `TaskFlow.Application` | DTOs, Interfaces de serviço (`IAuthService`, `ITaskService`, `INoteService`, `IExportService`, `IImportService`), Implementações, AutoMapper |
-| `TaskFlow.Infrastructure` | `AppDbContext` (SQLite), Implementações de repositório, `FileStorageService`, Geradores QuestPDF, Configuração DI |
-| `TaskFlow.Presentation` | Páginas Blazor Server, Layout MudBlazor, Interop JS, Sistema de temas |
+| `TaskFlow.Application` | DTOs, Interfaces de serviço, Implementações (Auth, Task, Note, Export, Import), AutoMapper |
+| `TaskFlow.Infrastructure` | `AppDbContext` (SQLite), Repositórios, `FileStorageService` (isolado por usuário), Geradores QuestPDF, DI |
+| `TaskFlow.Presentation` | Páginas Blazor Server com modais inline HTML nativos, Layout MudBlazor, Interop JS, Sistema de temas CSS |
 
 ### Funcionalidades
 
 - **Identidade**: Cadastro, login, recuperação de senha via pergunta de segurança, edição de perfil com foto
 - **TaskFlow (Tarefas)**:
   - CRUD com título, descrição, data de término
+  - **Modal de visualização inline** com detalhes completos, histórico de pendências, assinaturas, ações
+  - **Sistema de pendências**: criar com motivo, contraparte e assinatura desenhada à mão
   - Fluxo de status: Aberta → Pendente → Concluída (com reabertura)
-  - Logs de pendência com motivo e contraparte
-  - Remover pendência (reabre a tarefa)
+  - Bloqueio de conclusão quando há pendência ativa
   - Filtro por status
-  - Avisos de atraso nos cards e no Dashboard
-  - Dashboard com estatísticas, tarefas atrasadas, prazos da semana, distribuição de status
+  - Avisos de atraso nos cards e Dashboard
 - **NoteManager (Notas)**:
+  - Cards clicáveis abrem modal com detalhes completos
   - CRUD com título, conteúdo, status (Rascunho/Publicado/Arquivado)
-  - Sistema de anexos por upload (PDF, DOC, DOCX)
+  - Upload de anexos (PDF, DOC, DOCX) salvos em diretório isolado por usuário
   - Listagem de anexos com formatação de tamanho
 - **Exportação**:
-  - **Tipo 1 — PDF de Dados**: JSON embutido para transferência/backup entre máquinas
-  - **Tipo 2 — PDF Visual**: tabelas formatadas e conteúdo completo das notas para impressão
+  - **Tipo 1 — PDF de Dados**: JSON embutido com MigrationId para transferência/backup
+  - **Tipo 2 — PDF Visual**: relatório completo com barra de resumo, todos os detalhes, pendências, assinaturas, metadados
   - Seleção de escopo (Apenas Tarefas, Apenas Notas, ou Sistema Completo)
+  - PDF abre no navegador + faz download
 - **Importação**:
   - **Modo A — Importação de dados**: restaurar de PDFs Tipo 1
     - Estratégias de conflito: Substituir, Mesclar, Anexar
     - Filtro por data para importação seletiva
-    - Detecção de propriedade externa com opções Integrar/Visualizar/Cancelar
+    - Detecção de propriedade externa
   - **Modo B — Importação visual**: armazenar qualquer PDF para leitura offline
-- **Dashboard**: Contadores de tarefas (Abertas/Pendentes/Concluídas), total de notas, lista de atrasadas, prazos da semana, barras de distribuição, tarefas e notas recentes
-- **Modo Escuro**: Tema escuro em tons de cinza via CSS nativo com persistência em localStorage
-- **Instância Única**: Mutex global impede execução duplicada do app
+- **Dashboard**: Contadores, tarefas atrasadas, prazos da semana, distribuição de status
+- **Modo Escuro**: Tema CSS com persistência localStorage (alternância claro/escuro)
+- **Instância Única**: Mutex cross-platform + arquivo .lock impede execução duplicada
+- **SignalR Produção**: CircuitOptions (5min retenção, 120s timeout JS), HubOptions (64MB msg, 15s keepalive)
 
 ### Dependências
 
@@ -280,35 +282,34 @@ cd taskflow-notemanager
 cd src/TaskFlow.Presentation
 dotnet run
 
-# Abrir no navegador
-# http://localhost:5000
+# Abre em http://localhost:5000
 ```
 
-### Atalhos na Tela Inicial
+### Atalho na Área de Trabalho (Linux)
 
-#### Linux
-
-Crie um arquivo `.desktop` na sua área de trabalho:
+O launcher mata o servidor anterior, recompila e inicia do zero a cada clique:
 
 ```bash
-cat > ~/Desktop/taskflow-notemanager.desktop << 'EOF'
+cat > ~/Desktop/taskflow.desktop << 'EOF'
 [Desktop Entry]
+Version=2.0
 Type=Application
 Name=TaskFlow NoteManager
 Comment=Gerenciador de tarefas e notas offline
-Exec=/home/$USER/Projetos/gerenciador_de_tarefas_e_notas/deploy/launcher/run-taskflow.sh
-Icon=text-editor
+Exec=SEU_CAMINHO/deploy/launcher/run-taskflow.sh
+Icon=SEU_CAMINHO/src/TaskFlow.Presentation/wwwroot/taskflow-icon.svg
 Terminal=false
 Categories=Office;Utility;
-Keywords=task;note;manager;pdf;signature;offline;
-StartupWMClass=taskflow
+StartupNotify=true
+StartupWMClass=TaskFlow
 EOF
 
-chmod +x ~/Desktop/taskflow-notemanager.desktop
+chmod +x ~/Desktop/taskflow.desktop
+gio set ~/Desktop/taskflow.desktop metadata::trusted true
 ```
 
-> Ajuste `Exec=` para apontar para `deploy/launcher/run-taskflow.sh` dentro do seu diretório do projeto.
-> Clique com o botão direito no ícone e selecione **"Permitir Inicialização"** se solicitado.
+> Substitua `SEU_CAMINHO` pelo caminho absoluto do projeto (ex: `/home/tony/Projetos/gerenciador_de_tarefas_e_notas`).
+> O ícone SVG está em `src/TaskFlow.Presentation/wwwroot/taskflow-icon.svg`.
 
 #### Windows
 
@@ -317,9 +318,8 @@ Crie um atalho para `deploy\launcher\TaskFlow_Launcher.bat`:
 1. Clique com botão direito na Área de Trabalho → **Novo → Atalho**
 2. Navegue até `C:\Users\%USERNAME%\...\deploy\launcher\TaskFlow_Launcher.bat`
 3. Nomeie como `TaskFlow NoteManager`
-4. Clique direito no atalho → **Propriedades → Alterar Ícone** (opcional)
 
-Ou via linha de comando (PowerShell):
+Ou via PowerShell:
 
 ```powershell
 $WScriptShell = New-Object -ComObject WScript.Shell
