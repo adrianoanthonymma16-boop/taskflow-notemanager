@@ -71,7 +71,9 @@ public class ExportService : IExportService
             OwnerId = request.OwnerId,
             OwnerName = user?.FullName ?? request.OwnerName,
             ExportDate = DateTime.UtcNow,
-            Scope = request.Scope
+            Scope = request.Scope,
+            MigrationId = $"TF-{DateTime.UtcNow:yyyyMMddHHmmss}",
+            ExportVersion = "2.0"
         };
 
         var scope = (ImportScope)request.Scope;
@@ -102,6 +104,8 @@ public class ExportService : IExportService
                     OwnerId = pl.OwnerId,
                     Reason = pl.Reason,
                     CounterpartyName = pl.CounterpartyName,
+                    MySignature = pl.MySignature,
+                    CounterpartySignature = pl.CounterpartySignature,
                     CreatedAt = pl.CreatedAt,
                     ResolvedAt = pl.ResolvedAt,
                     OwnerName = pl.Owner?.FullName ?? string.Empty
@@ -140,6 +144,13 @@ public class ExportService : IExportService
                 }));
             }
         }
+
+        manifest.TotalTasks = manifest.Tasks.Count;
+        manifest.TotalNotes = manifest.Notes.Count;
+        manifest.TotalAttachments = manifest.Attachments.Count;
+        manifest.TotalPendingLogs = manifest.PendingLogs.Count;
+        manifest.ActivePendingLogs = manifest.PendingLogs.Count(pl => pl.IsActive);
+        manifest.ScopeName = scope.ToString();
 
         return manifest;
     }
