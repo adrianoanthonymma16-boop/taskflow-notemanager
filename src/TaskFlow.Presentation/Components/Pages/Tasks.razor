@@ -34,7 +34,7 @@ else
 {
     @foreach (var task in _tasks)
     {
-        <div @onclick="() => ViewTask(task)" class="task-card" style="padding:16px;margin-bottom:12px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.1);background:var(--surface,#fff);cursor:pointer">
+        <div class="task-card" style="padding:16px;margin-bottom:12px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.1);background:var(--surface,#fff)">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
                 <div style="flex:1">
                     <h3 style="margin:0;font-size:1.1rem">@task.Title</h3>
@@ -55,7 +55,7 @@ else
                         </p>
                     }
                 </div>
-                <div style="display:flex;gap:6px;flex-wrap:wrap" @onclick:stopPropagation>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
                     @if (task.Status == 0)
                     {
                         <button @onclick="() => OpenPendingForTask(task)" style="padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;background:#d32f2f;color:#fff">⚠️ Pendência</button>
