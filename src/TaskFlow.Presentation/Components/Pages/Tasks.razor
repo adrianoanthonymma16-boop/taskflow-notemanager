@@ -34,7 +34,7 @@ else
 {
     @foreach (var task in _tasks)
     {
-        <div class="task-card" style="padding:16px;margin-bottom:12px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.1);background:var(--surface,#fff)">
+        <div @onclick="() => ViewTask(task)" class="task-card" style="padding:16px;margin-bottom:12px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.1);background:var(--surface,#fff);cursor:pointer">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
                 <div style="flex:1">
                     <h3 style="margin:0;font-size:1.1rem">@task.Title</h3>
