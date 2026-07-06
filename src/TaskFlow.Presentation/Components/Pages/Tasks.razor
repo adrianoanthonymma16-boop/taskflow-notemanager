@@ -262,10 +262,14 @@ else
 
     private async Task LoadTasks()
     {
-        if (UserState.CurrentUser is null) return;
-        int? status = null;
-        if (int.TryParse(_filterStatus, out var s)) status = s;
-        _tasks = await TaskService.GetByOwnerAsync(UserState.CurrentUser.Id, status);
+        try
+        {
+            if (UserState.CurrentUser is null) return;
+            int? status = null;
+            if (int.TryParse(_filterStatus, out var s)) status = s;
+            _tasks = await TaskService.GetByOwnerAsync(UserState.CurrentUser.Id, status);
+        }
+        catch { }
     }
 
     private bool _showTaskDialog;
@@ -290,7 +294,7 @@ else
     private async Task CompleteFromView(TaskDto t) { try { await TaskService.MarkAsCompletedAsync(t.Id); Snackbar.Add("Concluída.", Severity.Success); await CloseViewTask(); } catch (InvalidOperationException ex) { Snackbar.Add(ex.Message, Severity.Error); } }
     private async Task ResolveFromView(TaskDto t) { await TaskService.ResolvePendingAsync(t.Id); Snackbar.Add("Reaberta.", Severity.Success); await CloseViewTask(); }
     private async Task ReopenFromView(TaskDto t) { await TaskService.ReopenAsync(t.Id); Snackbar.Add("Reaberta.", Severity.Success); await CloseViewTask(); }
-    private async Task DeleteFromView(TaskDto t) { if (await JS.InvokeAsync<bool>("confirm", $"Excluir '{t.Title}'?")) { await TaskService.DeleteAsync(t.Id); Snackbar.Add("Excluída.", Severity.Success); await CloseViewTask(); } }
+    private async Task DeleteFromView(TaskDto t) { try { if (await JS.InvokeAsync<bool>("confirm", $"Excluir '{t.Title}'?")) { await TaskService.DeleteAsync(t.Id); Snackbar.Add("Excluída.", Severity.Success); await CloseViewTask(); } } catch { await CloseViewTask(); } }
 
     private bool _showPendingModal;
     private int _pendingTaskId;
@@ -299,12 +303,13 @@ else
     private void OpenPendingForTask(TaskDto t) { _pendingTaskId = t.Id; ResetPendingForm(); _showPendingModal = true; }
     private void OpenPendingFromView() { if (_viewTask is null) return; _pendingTaskId = _viewTask.Id; ResetPendingForm(); _showPendingModal = true; }
     private void ResetPendingForm() { _pendingReason = ""; _pendingCounterparty = ""; _pendingSig = ""; _pendingCounterSig = ""; }
-    private async Task ClearSig(string id) => await JS.InvokeVoidAsync("signaturePad.clear", id);
+    private async Task ClearSig(string id) { try { await JS.InvokeVoidAsync("signaturePad.clear", id); } catch { } }
+
     private async Task SubmitPending()
     {
         if (UserState.CurrentUser is null || string.IsNullOrWhiteSpace(_pendingReason)) return;
-        _pendingSig = await JS.InvokeAsync<string>("signaturePad.getData", _sigId);
-        _pendingCounterSig = await JS.InvokeAsync<string>("signaturePad.getData", _sigCtrId);
+        try { _pendingSig = await JS.InvokeAsync<string>("signaturePad.getData", _sigId); } catch { _pendingSig = ""; }
+        try { _pendingCounterSig = await JS.InvokeAsync<string>("signaturePad.getData", _sigCtrId); } catch { _pendingCounterSig = ""; }
         var dto = new CreatePendingLogDto { TaskId = _pendingTaskId, Reason = _pendingReason, CounterpartyName = string.IsNullOrWhiteSpace(_pendingCounterparty) ? null : _pendingCounterparty, MySignature = _pendingSig, CounterpartySignature = string.IsNullOrWhiteSpace(_pendingCounterSig) ? null : _pendingCounterSig };
         await TaskService.MarkAsPendingAsync(UserState.CurrentUser.Id, dto);
         Snackbar.Add("Pendência registrada.", Severity.Warning);
@@ -315,19 +320,23 @@ else
 
     private async Task RefreshViewTask()
     {
-        await LoadTasks();
+        try { await LoadTasks(); } catch { }
         if (_viewTask is not null) _viewTask = _tasks.FirstOrDefault(t => t.Id == _viewTask.Id);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender) { await JS.InvokeVoidAsync("signaturePad.init", _sigId); await JS.InvokeVoidAsync("signaturePad.init", _sigCtrId); }
+        if (firstRender)
+        {
+            try { await JS.InvokeVoidAsync("signaturePad.init", _sigId); } catch { }
+            try { await JS.InvokeVoidAsync("signaturePad.init", _sigCtrId); } catch { }
+        }
     }
 
     private async Task ResolvePending(TaskDto t) { await TaskService.ResolvePendingAsync(t.Id); await LoadTasks(); Snackbar.Add("Reaberta.", Severity.Success); }
     private async Task CompleteTask(TaskDto t) { try { await TaskService.MarkAsCompletedAsync(t.Id); await LoadTasks(); Snackbar.Add("Concluída.", Severity.Success); } catch (InvalidOperationException ex) { Snackbar.Add(ex.Message, Severity.Error); } }
     private async Task ReopenTask(TaskDto t) { await TaskService.ReopenAsync(t.Id); await LoadTasks(); Snackbar.Add("Reaberta.", Severity.Success); }
-    private async Task DeleteTask(TaskDto t) { if (await JS.InvokeAsync<bool>("confirm", $"Excluir '{t.Title}'?")) { await TaskService.DeleteAsync(t.Id); await LoadTasks(); Snackbar.Add("Excluída.", Severity.Success); } }
+    private async Task DeleteTask(TaskDto t) { try { if (await JS.InvokeAsync<bool>("confirm", $"Excluir '{t.Title}'?")) { await TaskService.DeleteAsync(t.Id); await LoadTasks(); Snackbar.Add("Excluída.", Severity.Success); } } catch { } }
 
     private static (string Message, string Severity) GetDueWarning(DateTime dueDate)
     {
