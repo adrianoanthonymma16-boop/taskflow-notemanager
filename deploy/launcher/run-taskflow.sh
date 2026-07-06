@@ -7,29 +7,27 @@ PORT=5000
 URL="http://localhost:$PORT/tasks"
 
 echo "🚀 TaskFlow NoteManager v3.0"
-echo "=========================="
 
-if [ ! -d "$PROJECT_DIR" ]; then
-    echo "❌ Projeto não encontrado: $PROJECT_DIR"
-    exit 1
-fi
+[ ! -d "$PROJECT_DIR" ] && { echo "❌ Projeto não encontrado: $PROJECT_DIR"; exit 1; }
 
-echo "🛑 Parando servidor anterior..."
+# Mata servidor anterior
 fuser -k $PORT/tcp 2>/dev/null
 sleep 1
 
-echo "🔨 Recompilando..."
+# Recompila
+echo "🔨 Compilando..."
 cd "$SOLUTION_DIR" || exit 1
-dotnet build --nologo -v q 2>&1 | tail -1
-if [ ${PIPESTATUS[0]} -ne 0 ]; then
-    echo "❌ Erro na compilação. Execute 'dotnet build' para ver detalhes."
+dotnet build --nologo -v q 2>&1
+if [ $? -ne 0 ]; then
+    echo "❌ Erro na compilação."
     exit 1
 fi
 
+# Inicia
 echo "📦 Iniciando servidor..."
 cd "$PROJECT_DIR" || exit 1
 dotnet run --urls "http://localhost:$PORT" &
 sleep 5
-echo "✅ Servidor iniciado — abrindo aba Tarefas..."
+echo "✅ http://localhost:$PORT/tasks"
 xdg-open "$URL" 2>/dev/null &
 wait
