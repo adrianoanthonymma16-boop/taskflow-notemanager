@@ -13,4 +13,10 @@ public class PendingLogDto
     public DateTime CreatedAt { get; set; }
     public DateTime? ResolvedAt { get; set; }
     public string OwnerName { get; set; } = string.Empty;
+
+    public string? MySignature { get; set; }
+
+    public string? CounterpartySignature { get; set; }
+
+    public bool IsActive => ResolvedAt is null;
 }

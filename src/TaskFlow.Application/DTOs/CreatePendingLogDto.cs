@@ -14,4 +14,8 @@ public class CreatePendingLogDto
     public string Reason { get; set; } = string.Empty;
 
     public string? CounterpartyName { get; set; }
+
+    public string? MySignature { get; set; }
+
+    public string? CounterpartySignature { get; set; }
 }

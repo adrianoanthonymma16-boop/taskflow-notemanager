@@ -13,3 +13,4 @@ dist/
 **/VisualPdfs/
 /tmp/
 *.log
+.opencode-memory.json

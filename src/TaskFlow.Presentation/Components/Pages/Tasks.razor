@@ -3,103 +3,128 @@
 @inject ITaskService TaskService
 @inject UserStateService UserState
 @inject ISnackbar Snackbar
-@inject IDialogService DialogService
-@inject NavigationManager Navigation
+@inject IJSRuntime JS
 
-<MudText Typo="Typo.h4" Class="mb-4">Tarefas</MudText>
+<style>
+    .sig-canvas { width:100%;height:120px;display:block;cursor:crosshair;touch-action:none }
+</style>
 
-<MudGrid Class="mb-4">
-    <MudItem xs="12" sm="4">
-        <select class="mud-select" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:4px;font-size:16px;font-family:inherit;background:var(--surface);color:var(--text)"
-                value="@_filterStatus" @onchange="OnFilterChanged">
-            <option value="">Todos os status</option>
-            <option value="0">Abertas</option>
-            <option value="1">Pendentes</option>
-            <option value="2">Concluídas</option>
-        </select>
-    </MudItem>
-    <MudItem xs="12" sm="8" Class="d-flex justify-end">
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="Icons.Material.Filled.Add"
-                   OnClick="OpenCreateDialog">
-            Nova Tarefa
-        </MudButton>
-    </MudItem>
-</MudGrid>
+<h2 style="font-size:1.5rem;margin:0 0 16px 0">Tarefas</h2>
+
+<div style="display:flex;gap:12px;margin-bottom:16px;align-items:center">
+    <select style="flex:1;padding:12px 14px;border:1px solid var(--border,#e0e0e0);border-radius:6px;font-size:1rem;font-family:inherit;background:var(--surface,#fff);color:var(--text,#333)"
+            value="@_filterStatus" @onchange="OnFilterChanged">
+        <option value="">Todos os status</option>
+        <option value="0">Abertas</option>
+        <option value="1">Pendentes</option>
+        <option value="2">Concluídas</option>
+    </select>
+    <button @onclick="OpenCreateDialog" style="padding:12px 20px;border:none;border-radius:6px;cursor:pointer;font-size:0.95rem;background:#1976d2;color:#fff;display:flex;align-items:center;gap:6px;white-space:nowrap">
+        ➕ Nova Tarefa
+    </button>
+</div>
 
 @if (_tasks.Count == 0)
 {
-    <MudAlert Severity="Severity.Info" Class="ma-4">Nenhuma tarefa encontrada.</MudAlert>
+    <div style="padding:16px;border-radius:6px;background:#e3f2fd;color:#1565c0">Nenhuma tarefa encontrada.</div>
 }
 else
 {
     @foreach (var task in _tasks)
     {
-        <MudPaper Elevation="1" Class="pa-4 mb-3">
-            <div class="d-flex justify-space-between align-start">
-                <div>
-                    <MudText Typo="Typo.h6">@task.Title</MudText>
-                    <MudText Color="@GetStatusColor(task.Status)" Typo="Typo.caption">
+        <div style="padding:16px;margin-bottom:12px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.1);background:var(--surface,#fff)">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+                <div style="flex:1">
+                    <h3 style="margin:0;font-size:1.1rem">@task.Title</h3>
+                    <p style="margin:4px 0 0 0;font-size:0.85rem;color:@GetStatusColor(task.Status)">
                         <strong>@task.StatusName</strong>@(task.DueDate.HasValue ? $" — Prazo: {task.DueDate:dd/MM/yyyy}" : "")
-                    </MudText>
+                    </p>
                     @if (task.DueDate.HasValue && task.Status == 0)
                     {
                         var warning = GetDueWarning(task.DueDate.Value);
-                        <MudAlert Severity="@warning.Severity" Class="mt-2 mb-0" Style="padding:4px 12px;font-size:0.85rem" Square="true">
+                        <div style="padding:4px 12px;margin-top:8px;font-size:0.85rem;border-radius:4px;background:@(warning.Severity == "error" ? "#fce4e4" : "#fff3e0");color:@(warning.Severity == "error" ? "#d32f2f" : "#f57c00")">
                             @warning.Message
-                        </MudAlert>
+                        </div>
                     }
                     @if (!string.IsNullOrWhiteSpace(task.Description))
                     {
-                        <MudText Typo="Typo.body2" Class="mt-1" Color="Color.Secondary">
+                        <p style="margin:8px 0 0 0;font-size:0.85rem;color:var(--text-secondary,#666)">
                             @(task.Description.Length > 100 ? task.Description[..100] + "..." : task.Description)
-                        </MudText>
+                        </p>
                     }
                 </div>
-                <div class="d-flex gap-2">
+                <div style="display:flex;gap:6px;flex-wrap:wrap" @onclick:stopPropagation>
                     @if (task.Status == 0)
                     {
-                        <MudButton Variant="Variant.Filled" Size="Size.Small" Color="Color.Error"
-                                   OnClick="() => MarkPending(task)" StartIcon="Icons.Material.Filled.Warning">
-                            Pendência
-                        </MudButton>
+                        <button @onclick="() => OpenPendingForTask(task)" style="padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;background:#d32f2f;color:#fff">⚠️ Pendência</button>
                     }
                     @if (task.Status == 1)
                     {
-                        <MudButton Variant="Variant.Filled" Size="Size.Small" Color="Color.Warning"
-                                   OnClick="() => ResolvePending(task)" StartIcon="Icons.Material.Filled.Clear">
-                            Remover Pendência
-                        </MudButton>
+                        <button @onclick="() => ResolvePending(task)" style="padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;background:#f57c00;color:#fff">❌ Remover Pendência</button>
                     }
-                    @if (task.Status == 0 || task.Status == 1)
+                    @if (task.Status == 0)
                     {
-                        <MudButton Variant="Variant.Filled" Size="Size.Small" Color="Color.Success"
-                                   OnClick="() => CompleteTask(task)" StartIcon="Icons.Material.Filled.CheckCircle">
-                            Concluir
-                        </MudButton>
+                        <button @onclick="() => CompleteTask(task)" style="padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;background:#43a047;color:#fff">✅ Concluir</button>
                     }
                     @if (task.Status == 2)
                     {
-                        <MudButton Variant="Variant.Filled" Size="Size.Small" Color="Color.Info"
-                                   OnClick="() => ReopenTask(task)" StartIcon="Icons.Material.Filled.Undo">
-                            Reabrir
-                        </MudButton>
+                        <button @onclick="() => ReopenTask(task)" style="padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;background:#1565c0;color:#fff">↩️ Reabrir</button>
                     }
-                    <MudButton Variant="Variant.Outlined" Size="Size.Small"
-                               OnClick="() => ViewTask(task)" StartIcon="Icons.Material.Filled.Visibility">
-                        Ver
-                    </MudButton>
-                    <MudButton Variant="Variant.Outlined" Size="Size.Small"
-                               OnClick="() => OpenEditDialog(task)" StartIcon="Icons.Material.Filled.Edit">
-                        Editar
-                    </MudButton>
-                    <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Error"
-                               OnClick="() => DeleteTask(task)" StartIcon="Icons.Material.Filled.Delete">
-                        Excluir
-                    </MudButton>
+                    <button @onclick="() => OpenEditDialog(task)" style="padding:6px 14px;border:1px solid var(--border,#e0e0e0);border-radius:4px;cursor:pointer;font-size:0.8rem;background:transparent">✏️ Editar</button>
+                    <button @onclick="() => DeleteTask(task)" style="padding:6px 14px;border:1px solid #d32f2f;border-radius:4px;cursor:pointer;font-size:0.8rem;background:transparent;color:#d32f2f">🗑️ Excluir</button>
                 </div>
             </div>
-        </MudPaper>
+        </div>
     }
+}
+
+@* Modal Tarefa (Criar/Editar) *@
+@if (_showTaskDialog)
+{
+    <TaskDialog Visible="true" Model="@_taskDialogModel" IsEdit="@_taskDialogIsEdit" OnSubmit="OnTaskDialogSubmit" OnCancel="OnTaskDialogCancel" />
+}
+
+@* Modal Pendência *@
+@if (_showPendingModal)
+{
+    <div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center" @onclick="CancelPending">
+        <div style="background:var(--surface,#fff);border-radius:12px;max-width:500px;width:95%;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.3)" @onclick:stopPropagation>
+            <h3 style="margin:0 0 16px 0;display:flex;align-items:center;gap:8px;font-size:1.2rem">⚠️ Registrar Pendência</h3>
+
+            <p style="margin:0 0 4px 0;font-size:0.85rem;color:var(--text-secondary,#666)">Motivo *</p>
+            <textarea @bind="_pendingReason" style="width:100%;padding:12px;border:1px solid var(--border,#e0e0e0);border-radius:6px;font-size:0.95rem;font-family:inherit;resize:vertical;min-height:80px;box-sizing:border-box" required></textarea>
+
+            <p style="margin:12px 0 4px 0;font-size:0.85rem;color:var(--text-secondary,#666)">Contraparte (opcional)</p>
+            <input @bind="_pendingCounterparty" style="width:100%;padding:12px;border:1px solid var(--border,#e0e0e0);border-radius:6px;font-size:0.95rem;font-family:inherit;box-sizing:border-box" />
+
+            <p style="margin:16px 0 4px 0;font-size:0.85rem">Sua Assinatura</p>
+            <div style="position:relative;border:2px dashed var(--border,#e0e0e0);border-radius:8px;overflow:hidden;margin-bottom:8px;background:var(--surface,#fff);touch-action:none">
+                <canvas id="@_sigId" class="sig-canvas"></canvas>
+                <p style="margin:0;position:absolute;bottom:4px;right:8px;color:var(--text-secondary,#666);font-size:11px">Desenhe sua assinatura</p>
+            </div>
+            <button @onclick="() => ClearSig(_sigId)" style="padding:4px 12px;border:1px solid var(--border,#e0e0e0);border-radius:4px;cursor:pointer;font-size:0.8rem;background:transparent;margin-bottom:16px">🔄 Limpar</button>
+
+            <p style="margin:12px 0 4px 0;font-size:0.85rem">
+                Assinatura da Contraparte
+                @if (!string.IsNullOrWhiteSpace(_pendingCounterparty))
+                {
+                    <span>(@_pendingCounterparty)</span>
+                }
+                <span style="color:var(--text-secondary,#666);font-size:0.8rem">(opcional)</span>
+            </p>
+            <div style="position:relative;border:2px dashed var(--border,#e0e0e0);border-radius:8px;overflow:hidden;margin-bottom:8px;background:var(--surface,#fff);touch-action:none">
+                <canvas id="@_sigCtrId" class="sig-canvas"></canvas>
+                <p style="margin:0;position:absolute;bottom:4px;right:8px;color:var(--text-secondary,#666);font-size:11px">Desenhe a assinatura da contraparte</p>
+            </div>
+            <button @onclick="() => ClearSig(_sigCtrId)" style="padding:4px 12px;border:1px solid var(--border,#e0e0e0);border-radius:4px;cursor:pointer;font-size:0.8rem;background:transparent;margin-bottom:16px">🔄 Limpar</button>
+
+            <hr style="border:none;border-top:1px solid var(--border,#e0e0e0);margin:16px 0" />
+            <div style="display:flex;justify-content:flex-end;gap:8px">
+                <button @onclick="CancelPending" style="padding:8px 20px;border:1px solid var(--border,#e0e0e0);border-radius:6px;cursor:pointer;font-size:0.9rem;background:transparent">Cancelar</button>
+                <button @onclick="SubmitPending" style="padding:8px 20px;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;background:#f57c00;color:#fff">⚠️ Marcar Pendência</button>
+            </div>
+        </div>
+    </div>
 }
 
 @code {
@@ -116,7 +141,6 @@ else
     {
         _filterStatus = e.Value?.ToString() ?? "";
         await LoadTasks();
-        StateHasChanged();
     }
 
     private async Task LoadTasks()
@@ -127,58 +151,108 @@ else
         _tasks = await TaskService.GetByOwnerAsync(UserState.CurrentUser.Id, status);
     }
 
-    private async Task OpenCreateDialog()
+    private bool _showTaskDialog;
+    private CreateTaskDto _taskDialogModel = new();
+    private bool _taskDialogIsEdit;
+    private int _editTaskId;
+
+    private void OpenCreateDialog()
     {
-        var dto = new CreateTaskDto();
-        var parameters = new DialogParameters { ["Model"] = dto };
-        var dialog = await DialogService.ShowAsync<TaskDialog>("Nova Tarefa", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
-        var result = await dialog.Result;
-        if (!result.Canceled && result.Data is CreateTaskDto resultDto)
-        {
-            if (UserState.CurrentUser is not null)
-                await TaskService.CreateAsync(UserState.CurrentUser.Id, resultDto);
-            await LoadTasks();
-            Snackbar.Add("Tarefa criada.", Severity.Success);
-        }
+        _taskDialogModel = new CreateTaskDto();
+        _taskDialogIsEdit = false;
+        _showTaskDialog = true;
     }
 
-    private async Task OpenEditDialog(TaskDto task)
+    private void OpenEditDialog(TaskDto task)
     {
-        var dto = new CreateTaskDto { Title = task.Title, Description = task.Description, DueDate = task.DueDate };
-        var parameters = new DialogParameters { ["Model"] = dto, ["IsEdit"] = true };
-        var dialog = await DialogService.ShowAsync<TaskDialog>("Editar Tarefa", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
-        var result = await dialog.Result;
-        if (!result.Canceled && result.Data is CreateTaskDto resultDto)
+        _taskDialogModel = new CreateTaskDto { Title = task.Title, Description = task.Description, DueDate = task.DueDate };
+        _taskDialogIsEdit = true;
+        _editTaskId = task.Id;
+        _showTaskDialog = true;
+    }
+
+    private async Task OnTaskDialogSubmit(CreateTaskDto dto)
+    {
+        _showTaskDialog = false;
+        if (UserState.CurrentUser is null) return;
+        if (_taskDialogIsEdit)
         {
-            var update = new UpdateTaskDto { Title = resultDto.Title, Description = resultDto.Description, DueDate = resultDto.DueDate };
-            await TaskService.UpdateAsync(task.Id, update);
-            await LoadTasks();
+            var update = new UpdateTaskDto { Title = dto.Title, Description = dto.Description, DueDate = dto.DueDate };
+            await TaskService.UpdateAsync(_editTaskId, update);
             Snackbar.Add("Tarefa atualizada.", Severity.Success);
         }
-    }
-
-    private async Task ViewTask(TaskDto task)
-    {
-        var dialog = await DialogService.ShowAsync<TaskViewDialog>("", new DialogParameters { ["TaskDto"] = task },
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
-        await dialog.Result;
+        else
+        {
+            await TaskService.CreateAsync(UserState.CurrentUser.Id, dto);
+            Snackbar.Add("Tarefa criada.", Severity.Success);
+        }
         await LoadTasks();
     }
 
-    private async Task MarkPending(TaskDto task)
+    private async Task OnTaskDialogCancel()
     {
-        var dto = new CreatePendingLogDto { TaskId = task.Id };
-        var parameters = new DialogParameters { ["Model"] = dto };
-        var dialog = await DialogService.ShowAsync<PendingDialog>("Marcar como Pendência", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
-        var result = await dialog.Result;
-        if (!result.Canceled && UserState.CurrentUser is not null)
+        _showTaskDialog = false;
+    }
+
+    private bool _showPendingModal;
+    private int _pendingTaskId;
+    private string _pendingReason = "";
+    private string _pendingCounterparty = "";
+    private string _pendingSig = "";
+    private string _pendingCounterSig = "";
+    private readonly string _sigId = $"sig-{Guid.NewGuid():N}";
+    private readonly string _sigCtrId = $"sig-ctr-{Guid.NewGuid():N}";
+
+    private void OpenPendingForTask(TaskDto task)
+    {
+        _pendingTaskId = task.Id;
+        ResetPendingForm();
+        _showPendingModal = true;
+    }
+
+    private void ResetPendingForm()
+    {
+        _pendingReason = "";
+        _pendingCounterparty = "";
+        _pendingSig = "";
+        _pendingCounterSig = "";
+    }
+
+    private async Task ClearSig(string id)
+    {
+        await JS.InvokeVoidAsync("signaturePad.clear", id);
+    }
+
+    private async Task SubmitPending()
+    {
+        if (UserState.CurrentUser is null || string.IsNullOrWhiteSpace(_pendingReason)) return;
+        _pendingSig = await JS.InvokeAsync<string>("signaturePad.getData", _sigId);
+        _pendingCounterSig = await JS.InvokeAsync<string>("signaturePad.getData", _sigCtrId);
+        var dto = new CreatePendingLogDto
         {
-            await TaskService.MarkAsPendingAsync(UserState.CurrentUser.Id, dto);
-            await LoadTasks();
-            Snackbar.Add("Tarefa marcada como pendente.", Severity.Warning);
+            TaskId = _pendingTaskId,
+            Reason = _pendingReason,
+            CounterpartyName = string.IsNullOrWhiteSpace(_pendingCounterparty) ? null : _pendingCounterparty,
+            MySignature = _pendingSig,
+            CounterpartySignature = string.IsNullOrWhiteSpace(_pendingCounterSig) ? null : _pendingCounterSig
+        };
+        await TaskService.MarkAsPendingAsync(UserState.CurrentUser.Id, dto);
+        Snackbar.Add("Pendência registrada.", Severity.Warning);
+        _showPendingModal = false;
+        await LoadTasks();
+    }
+
+    private async Task CancelPending()
+    {
+        _showPendingModal = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("signaturePad.init", _sigId);
+            await JS.InvokeVoidAsync("signaturePad.init", _sigCtrId);
         }
     }
 
@@ -186,7 +260,7 @@ else
     {
         await TaskService.ResolvePendingAsync(task.Id);
         await LoadTasks();
-        Snackbar.Add("Pendência removida. Tarefa reaberta.", Severity.Success);
+        Snackbar.Add("Pendência removida.", Severity.Success);
     }
 
     private async Task CompleteTask(TaskDto task)
@@ -195,7 +269,7 @@ else
         {
             await TaskService.MarkAsCompletedAsync(task.Id);
             await LoadTasks();
-            Snackbar.Add("Tarefa concluída.", Severity.Success);
+            Snackbar.Add("Concluída.", Severity.Success);
         }
         catch (InvalidOperationException ex)
         {
@@ -207,40 +281,30 @@ else
     {
         await TaskService.ReopenAsync(task.Id);
         await LoadTasks();
-        Snackbar.Add("Tarefa reaberta.", Severity.Success);
+        Snackbar.Add("Reaberta.", Severity.Success);
     }
 
     private async Task DeleteTask(TaskDto task)
     {
-        var confirmed = await DialogService.ShowMessageBox("Confirmar", $"Excluir tarefa '{task.Title}'?",
-            yesText: "Sim", cancelText: "Não");
-        if (confirmed == true)
+        if (await JS.InvokeAsync<bool>("confirm", $"Excluir '{task.Title}'?"))
         {
             await TaskService.DeleteAsync(task.Id);
             await LoadTasks();
-            Snackbar.Add("Tarefa excluída.", Severity.Success);
+            Snackbar.Add("Excluída.", Severity.Success);
         }
     }
 
-    private static (string Message, Severity Severity) GetDueWarning(DateTime dueDate)
+    private static (string Message, string Severity) GetDueWarning(DateTime dueDate)
     {
         var days = (dueDate.Date - DateTime.Today).Days;
-        if (days < 0)
-            return ($"Atrasada há {-days} dia{(-days > 1 ? "s" : "")}", Severity.Error);
-        if (days == 0)
-            return ("Vence hoje", Severity.Warning);
-        if (days == 1)
-            return ("Falta 1 dia", Severity.Warning);
-        if (days <= 3)
-            return ($"Faltam {days} dias", Severity.Info);
-        return ($"Faltam {days} dias", Severity.Normal);
+        if (days < 0) return ($"Atrasada há {-days} dia(s)", "error");
+        if (days == 0) return ("Vence hoje", "warning");
+        if (days <= 3) return ($"Faltam {days} dias", "info");
+        return ($"Faltam {days} dias", "normal");
     }
 
-    private static Color GetStatusColor(int status) => status switch
+    private static string GetStatusColor(int status) => status switch
     {
-        0 => Color.Info,
-        1 => Color.Warning,
-        2 => Color.Success,
-        _ => Color.Default
+        0 => "#1565c0", 1 => "#f57c00", 2 => "#2e7d32", _ => "#333"
     };
 }

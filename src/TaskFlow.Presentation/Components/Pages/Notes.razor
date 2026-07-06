@@ -3,62 +3,136 @@
 @inject INoteService NoteService
 @inject UserStateService UserState
 @inject ISnackbar Snackbar
-@inject IDialogService DialogService
-@inject NavigationManager Navigation
+@inject IJSRuntime JS
 
-<MudText Typo="Typo.h4" Class="mb-4">Notas</MudText>
+<style>
+    .note-card { transition: box-shadow 0.15s, transform 0.15s; }
+    .note-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateY(-1px); }
+</style>
 
-<MudGrid Class="mb-4">
-    <MudItem xs="12" sm="4">
-        <select class="mud-select" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:4px;font-size:16px;font-family:inherit;background:var(--surface);color:var(--text)"
-                value="@_filterStatus" @onchange="OnFilterChanged">
-            <option value="">Todos os status</option>
-            <option value="0">Rascunho</option>
-            <option value="1">Publicadas</option>
-            <option value="2">Arquivadas</option>
-        </select>
-    </MudItem>
-    <MudItem xs="12" sm="8" Class="d-flex justify-end">
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="Icons.Material.Filled.Add"
-                   OnClick="OpenCreateDialog">
-            Nova Nota
-        </MudButton>
-    </MudItem>
-</MudGrid>
+<h2 style="font-size:1.5rem;margin:0 0 16px 0">Notas</h2>
+
+<div style="display:flex;gap:12px;margin-bottom:16px;align-items:center">
+    <select style="flex:1;padding:12px 14px;border:1px solid var(--border,#e0e0e0);border-radius:6px;font-size:1rem;font-family:inherit;background:var(--surface,#fff);color:var(--text,#333)"
+            value="@_filterStatus" @onchange="OnFilterChanged">
+        <option value="">Todos os status</option>
+        <option value="0">Rascunho</option>
+        <option value="1">Publicadas</option>
+        <option value="2">Arquivadas</option>
+    </select>
+    <button @onclick="OpenCreateDialog" style="padding:12px 20px;border:none;border-radius:6px;cursor:pointer;font-size:0.95rem;background:#1976d2;color:#fff;display:flex;align-items:center;gap:6px;white-space:nowrap">
+        ➕ Nova Nota
+    </button>
+</div>
 
 @if (_notes.Count == 0)
 {
-    <MudAlert Severity="Severity.Info" Class="ma-4">Nenhuma nota encontrada.</MudAlert>
+    <div style="padding:16px;border-radius:6px;background:#e3f2fd;color:#1565c0">Nenhuma nota encontrada.</div>
 }
 else
 {
     @foreach (var note in _notes)
     {
-        <MudPaper Elevation="1" Class="pa-4 mb-3">
-            <div class="d-flex justify-space-between align-start">
+        <div @onclick="() => ViewNote(note)" class="note-card" style="padding:16px;margin-bottom:12px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.1);background:var(--surface,#fff);cursor:pointer">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
                 <div>
-                    <MudText Typo="Typo.h6">#@note.NoteNumber — @note.Title</MudText>
-                    <MudText Color="@GetStatusColor(note.Status)" Typo="Typo.caption">
+                    <h3 style="margin:0;font-size:1.1rem">#@note.NoteNumber — @note.Title</h3>
+                    <p style="margin:4px 0 0 0;font-size:0.85rem;color:@GetStatusColor(note.Status)">
                         <strong>@note.StatusName</strong> — @note.CreatedAt.ToString("dd/MM/yyyy")
-                    </MudText>
+                    </p>
                 </div>
-                <div class="d-flex gap-2">
-                    <MudButton Variant="Variant.Outlined" Size="Size.Small"
-                               OnClick="() => ViewNote(note)" StartIcon="Icons.Material.Filled.Visibility">
-                        Ver
-                    </MudButton>
-                    <MudButton Variant="Variant.Outlined" Size="Size.Small"
-                               OnClick="() => OpenEditDialog(note)" StartIcon="Icons.Material.Filled.Edit">
-                        Editar
-                    </MudButton>
-                    <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Error"
-                               OnClick="() => DeleteNote(note)" StartIcon="Icons.Material.Filled.Delete">
-                        Excluir
-                    </MudButton>
+                <div style="display:flex;gap:6px" @onclick:stopPropagation>
+                    <button @onclick="() => OpenEditDialog(note)" style="padding:6px 14px;border:1px solid var(--border,#e0e0e0);border-radius:4px;cursor:pointer;font-size:0.8rem;background:transparent">✏️ Editar</button>
+                    <button @onclick="() => DeleteNote(note)" style="padding:6px 14px;border:1px solid #d32f2f;border-radius:4px;cursor:pointer;font-size:0.8rem;background:transparent;color:#d32f2f">🗑️ Excluir</button>
                 </div>
             </div>
-        </MudPaper>
+        </div>
     }
+}
+
+@* Modal Ver Nota *@
+@if (_viewNote is not null)
+{
+    var n = _viewNote;
+    <div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center" @onclick="CloseViewNote">
+        <div style="background:var(--surface,#fff);border-radius:12px;max-width:800px;width:95%;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.3)" @onclick:stopPropagation>
+
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+                <h2 style="margin:0;font-size:1.5rem;display:flex;align-items:center;gap:8px;font-weight:600">
+                    <span style="font-size:0.8rem;padding:4px 12px;border-radius:16px;font-weight:500;background:var(--mud-palette-table-lines,#e0e0e0);color:var(--text-secondary,#666)">#@n.NoteNumber</span>
+                    @n.Title
+                </h2>
+                <span style="font-size:0.8rem;padding:4px 14px;border-radius:16px;font-weight:500;background:@GetStatusBg(n.Status);color:@GetStatusText(n.Status)">@n.StatusName</span>
+            </div>
+
+            <p style="margin:0;font-size:0.8rem;color:var(--text-secondary,#666)">Criada em</p>
+            <p style="margin:2px 0 8px 0">@n.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+
+            @if (n.UpdatedAt.HasValue)
+            {
+                <p style="margin:0;font-size:0.8rem;color:var(--text-secondary,#666)">Atualizada em</p>
+                <p style="margin:2px 0 12px 0">@n.UpdatedAt?.ToString("dd/MM/yyyy HH:mm")</p>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(n.Content))
+            {
+                <p style="margin:0;font-size:0.8rem;color:var(--text-secondary,#666)">Conteúdo</p>
+                <div style="padding:16px;margin:4px 0 16px 0;background:var(--mud-palette-table-lines,#f5f5f5);border-radius:10px;min-height:100px">
+                    <p style="margin:0;white-space:pre-wrap;line-height:1.6">@n.Content</p>
+                </div>
+            }
+
+            <hr style="border:none;border-top:1px solid var(--border,#e0e0e0);margin:16px 0" />
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <h3 style="font-size:1.1rem;margin:0;display:flex;align-items:center;gap:6px">📎 Anexos (@n.Attachments.Count)</h3>
+                <label style="padding:6px 14px;border:1px solid var(--border,#e0e0e0);border-radius:6px;cursor:pointer;font-size:0.85rem;display:inline-flex;align-items:center;gap:4px;background:var(--surface,#fff)">
+                    ➕ Adicionar
+                    <InputFile OnChange="OnFilesSelected" accept=".pdf,.doc,.docx" multiple style="display:none" />
+                </label>
+            </div>
+
+            @if (_isUploading)
+            {
+                <progress style="width:100%;height:4px;margin-bottom:12px;border-radius:2px"></progress>
+            }
+
+            @if (n.Attachments.Count == 0)
+            {
+                <div style="padding:24px;text-align:center;border:2px dashed var(--border,#e0e0e0);border-radius:10px">
+                    <p style="margin:0;font-size:2rem">📄</p>
+                    <p style="margin:8px 0 0 0;font-size:0.9rem;color:var(--text-secondary,#666)">Nenhum anexo</p>
+                </div>
+            }
+            else
+            {
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">
+                    @foreach (var att in n.Attachments)
+                    {
+                        <div style="padding:12px;border:1px solid var(--border,#e0e0e0);border-radius:8px;display:flex;align-items:center;gap:8px">
+                            <div style="flex:1;min-width:0">
+                                <p style="margin:0;font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">@att.FileName</p>
+                                <p style="margin:0;font-size:0.75rem;color:var(--text-secondary,#666)">@att.FileSizeFormatted</p>
+                            </div>
+                            <button @onclick="() => RemoveAttachment(att)" style="padding:4px;border:none;border-radius:4px;cursor:pointer;background:transparent;color:#d32f2f;font-size:1rem">🗑️</button>
+                        </div>
+                    }
+                </div>
+            }
+
+            <hr style="border:none;border-top:1px solid var(--border,#e0e0e0);margin:16px 0" />
+            <div style="display:flex;justify-content:space-between">
+                <button @onclick="DeleteFromView" style="padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;background:#d32f2f;color:#fff">🗑️ Excluir</button>
+                <button @onclick="CloseViewNote" style="padding:8px 16px;border:1px solid var(--border,#e0e0e0);border-radius:6px;cursor:pointer;font-size:0.9rem;background:transparent;color:var(--text,#333)">❌ Fechar</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* Modal Nota (Criar/Editar) *@
+@if (_showNoteDialog)
+{
+    <NoteDialog Visible="true" Model="@_noteDialogModel" IsEdit="@_noteDialogIsEdit" OnSubmit="OnNoteDialogSubmit" OnCancel="OnNoteDialogCancel" />
 }
 
 @code {
@@ -75,7 +149,6 @@ else
     {
         _filterStatus = e.Value?.ToString() ?? "";
         await LoadNotes();
-        StateHasChanged();
     }
 
     private async Task LoadNotes()
@@ -86,51 +159,106 @@ else
         _notes = await NoteService.GetByOwnerAsync(UserState.CurrentUser.Id, status);
     }
 
-    private async Task OpenCreateDialog()
+    private bool _showNoteDialog;
+    private CreateNoteDto _noteDialogModel = new();
+    private bool _noteDialogIsEdit;
+    private int _editNoteId;
+
+    private void OpenCreateDialog()
     {
-        var dto = new CreateNoteDto();
-        var parameters = new DialogParameters { ["Model"] = dto };
-        var dialog = await DialogService.ShowAsync<NoteDialog>("Nova Nota", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
-        var result = await dialog.Result;
-        if (!result.Canceled && result.Data is CreateNoteDto resultDto)
-        {
-            if (UserState.CurrentUser is not null)
-                await NoteService.CreateAsync(UserState.CurrentUser.Id, resultDto);
-            await LoadNotes();
-            Snackbar.Add("Nota criada.", Severity.Success);
-        }
+        _noteDialogModel = new CreateNoteDto();
+        _noteDialogIsEdit = false;
+        _showNoteDialog = true;
     }
 
-    private async Task OpenEditDialog(NoteDto note)
+    private void OpenEditDialog(NoteDto note)
     {
-        var dto = new CreateNoteDto { Title = note.Title, Content = note.Content, Status = note.Status };
-        var parameters = new DialogParameters { ["Model"] = dto, ["IsEdit"] = true };
-        var dialog = await DialogService.ShowAsync<NoteDialog>("Editar Nota", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
-        var result = await dialog.Result;
-        if (!result.Canceled && result.Data is CreateNoteDto resultDto)
+        _noteDialogModel = new CreateNoteDto { Title = note.Title, Content = note.Content, Status = note.Status };
+        _noteDialogIsEdit = true;
+        _editNoteId = note.Id;
+        _showNoteDialog = true;
+    }
+
+    private async Task OnNoteDialogSubmit(CreateNoteDto dto)
+    {
+        _showNoteDialog = false;
+        if (UserState.CurrentUser is null) return;
+        if (_noteDialogIsEdit)
         {
-            var update = new UpdateNoteDto { Title = resultDto.Title, Content = resultDto.Content, Status = resultDto.Status };
-            await NoteService.UpdateAsync(note.Id, update);
-            await LoadNotes();
+            var update = new UpdateNoteDto { Title = dto.Title, Content = dto.Content, Status = dto.Status };
+            await NoteService.UpdateAsync(_editNoteId, update);
             Snackbar.Add("Nota atualizada.", Severity.Success);
         }
+        else
+        {
+            await NoteService.CreateAsync(UserState.CurrentUser.Id, dto);
+            Snackbar.Add("Nota criada.", Severity.Success);
+        }
+        await LoadNotes();
     }
 
-    private async Task ViewNote(NoteDto note)
+    private async Task OnNoteDialogCancel()
     {
-        var dialog = await DialogService.ShowAsync<NoteViewDialog>("", new DialogParameters { ["Note"] = note },
-            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
-        await dialog.Result;
+        _showNoteDialog = false;
+    }
+
+    private NoteDto? _viewNote;
+    private void ViewNote(NoteDto note) => _viewNote = note;
+    private async Task CloseViewNote()
+    {
+        _viewNote = null;
         await LoadNotes();
+    }
+
+    private async Task DeleteFromView()
+    {
+        if (_viewNote is null) return;
+        if (await JS.InvokeAsync<bool>("confirm", $"Excluir nota '{_viewNote.Title}'?"))
+        {
+            await NoteService.DeleteAsync(_viewNote.Id);
+            Snackbar.Add("Nota excluída.", Severity.Success);
+            await CloseViewNote();
+        }
+    }
+
+    private bool _isUploading;
+
+    private async Task OnFilesSelected(InputFileChangeEventArgs e)
+    {
+        if (_viewNote is null || UserState.CurrentUser is null) return;
+        _isUploading = true;
+        try
+        {
+            foreach (var file in e.GetMultipleFiles())
+            {
+                using var stream = file.OpenReadStream(50 * 1024 * 1024);
+                var att = await NoteService.AddAttachmentAsync(_viewNote.Id, UserState.CurrentUser.Id,
+                    file.Name, file.ContentType, file.Size, stream);
+                if (att is not null)
+                    _viewNote.Attachments.Add(att);
+            }
+            Snackbar.Add("Anexos adicionados.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro: {ex.Message}", Severity.Error);
+        }
+        finally { _isUploading = false; }
+    }
+
+    private async Task RemoveAttachment(AttachmentDto attachment)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", $"Remover '{attachment.FileName}'?"))
+        {
+            await NoteService.RemoveAttachmentAsync(attachment.Id);
+            if (_viewNote is not null) _viewNote.Attachments.Remove(attachment);
+            Snackbar.Add("Anexo removido.", Severity.Success);
+        }
     }
 
     private async Task DeleteNote(NoteDto note)
     {
-        var confirmed = await DialogService.ShowMessageBox("Confirmar", $"Excluir nota '{note.Title}'?",
-            yesText: "Sim", cancelText: "Não");
-        if (confirmed == true)
+        if (await JS.InvokeAsync<bool>("confirm", $"Excluir nota '{note.Title}'?"))
         {
             await NoteService.DeleteAsync(note.Id);
             await LoadNotes();
@@ -138,11 +266,16 @@ else
         }
     }
 
-    private static Color GetStatusColor(int status) => status switch
+    private static string GetStatusColor(int status) => status switch
     {
-        0 => Color.Default,
-        1 => Color.Success,
-        2 => Color.Secondary,
-        _ => Color.Default
+        0 => "#333", 1 => "#2e7d32", 2 => "#4527a0", _ => "#333"
+    };
+    private static string GetStatusBg(int status) => status switch
+    {
+        0 => "#f5f5f5", 1 => "#e8f5e9", 2 => "#ede7f6", _ => "#f5f5f5"
+    };
+    private static string GetStatusText(int status) => status switch
+    {
+        0 => "#333", 1 => "#2e7d32", 2 => "#4527a0", _ => "#333"
     };
 }

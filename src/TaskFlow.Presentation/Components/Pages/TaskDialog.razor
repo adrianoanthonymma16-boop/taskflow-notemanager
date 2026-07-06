@@ -1,37 +1,60 @@
-@rendermode InteractiveServer
+@if (Visible)
+{
+    <div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center" @onclick="Cancel">
+        <div style="background:var(--surface,#fff);border-radius:12px;max-width:500px;width:95%;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.3)" @onclick:stopPropagation>
+            <h3 style="margin:0 0 16px 0;font-size:1.2rem">@(IsEdit ? "✏️ Editar Tarefa" : "➕ Nova Tarefa")</h3>
 
-<MudDialog>
-    <DialogContent>
-        <MudTextField @bind-Value="_model.Title" Label="Título" Variant="Variant.Outlined"
-                      Required="true" Class="mb-3" />
-        <MudTextField @bind-Value="_model.Description" Label="Descrição" Variant="Variant.Outlined"
-                      Lines="3" Class="mb-3" />
-        <div class="mb-3">
-            <MudText Typo="Typo.body2" Class="mb-1">Data de Término</MudText>
-            <input type="date" class="mud-input mud-input-outlined mud-input-adorned-start"
-                   style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:4px;font-size:16px;font-family:inherit;box-sizing:border-box;background:var(--surface);color:var(--text)"
-                   value="@DueDateFormatted"
-                   @onchange="OnDueDateChanged" />
+            <p style="margin:0 0 4px 0;font-size:0.85rem;color:var(--text-secondary,#666)">Título *</p>
+            <input @bind="_model.Title" style="width:100%;padding:12px;border:1px solid var(--border,#e0e0e0);border-radius:6px;font-size:0.95rem;font-family:inherit;box-sizing:border-box;margin-bottom:12px" required />
+
+            <p style="margin:0 0 4px 0;font-size:0.85rem;color:var(--text-secondary,#666)">Descrição</p>
+            <textarea @bind="_model.Description" style="width:100%;padding:12px;border:1px solid var(--border,#e0e0e0);border-radius:6px;font-size:0.95rem;font-family:inherit;resize:vertical;min-height:80px;box-sizing:border-box;margin-bottom:12px"></textarea>
+
+            <p style="margin:0 0 4px 0;font-size:0.85rem;color:var(--text-secondary,#666)">Data de Término</p>
+            <input type="date" value="@_dueDateFormatted" @onchange="OnDueDateChanged" style="width:100%;padding:12px;border:1px solid var(--border,#e0e0e0);border-radius:6px;font-size:0.95rem;font-family:inherit;box-sizing:border-box;margin-bottom:12px" />
+
+            <hr style="border:none;border-top:1px solid var(--border,#e0e0e0);margin:16px 0" />
+            <div style="display:flex;justify-content:flex-end;gap:8px">
+                <button @onclick="Cancel" style="padding:8px 20px;border:1px solid var(--border,#e0e0e0);border-radius:6px;cursor:pointer;font-size:0.9rem;background:transparent">Cancelar</button>
+                <button @onclick="Submit" style="padding:8px 20px;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;background:#1976d2;color:#fff">@(IsEdit ? "Salvar" : "Criar")</button>
+            </div>
         </div>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="Cancel">Cancelar</MudButton>
-        <MudButton Color="Color.Primary" OnClick="Submit">@(IsEdit ? "Salvar" : "Criar")</MudButton>
-    </DialogActions>
-</MudDialog>
+    </div>
+}
 
 @code {
-    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public bool Visible { get; set; }
     [Parameter] public CreateTaskDto Model { get; set; } = new();
     [Parameter] public bool IsEdit { get; set; }
-    private CreateTaskDto _model = new();
-    private string DueDateFormatted => _model.DueDate?.ToString("yyyy-MM-dd") ?? "";
+    [Parameter] public EventCallback<CreateTaskDto> OnSubmit { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
 
-    protected override void OnParametersSet() { _model = Model; }
+    private CreateTaskDto _model = new();
+    private string _dueDateFormatted => _model.DueDate?.ToString("yyyy-MM-dd") ?? "";
+
+    protected override void OnParametersSet()
+    {
+        _model = new CreateTaskDto
+        {
+            Title = Model.Title,
+            Description = Model.Description,
+            DueDate = Model.DueDate
+        };
+    }
+
     private void OnDueDateChanged(ChangeEventArgs e)
     {
-        if (DateTime.TryParse(e.Value?.ToString(), out var date)) _model.DueDate = date;
+        if (DateTime.TryParse(e.Value?.ToString(), out var date))
+            _model.DueDate = date;
     }
-    private void Submit() => MudDialog.Close(DialogResult.Ok(_model));
-    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await OnSubmit.InvokeAsync(_model);
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
 }

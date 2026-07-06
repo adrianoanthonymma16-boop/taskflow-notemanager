@@ -85,6 +85,8 @@ public class TaskService : ITaskService
             OwnerId = ownerId,
             Reason = dto.Reason.Trim(),
             CounterpartyName = dto.CounterpartyName?.Trim(),
+            MySignature = dto.MySignature,
+            CounterpartySignature = dto.CounterpartySignature,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -166,6 +168,8 @@ public class TaskService : ITaskService
                 OwnerId = pl.OwnerId,
                 Reason = pl.Reason,
                 CounterpartyName = pl.CounterpartyName,
+                MySignature = pl.MySignature,
+                CounterpartySignature = pl.CounterpartySignature,
                 CreatedAt = pl.CreatedAt,
                 ResolvedAt = pl.ResolvedAt,
                 OwnerName = pl.Owner?.FullName ?? string.Empty
