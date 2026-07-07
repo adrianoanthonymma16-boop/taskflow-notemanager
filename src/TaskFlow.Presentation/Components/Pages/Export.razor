@@ -8,6 +8,61 @@
 <h1 style="margin-bottom:24px;font-size:2rem;font-weight:600;color:var(--text)">Exportar Dados</h1>
 
 <div style="padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.15);border-radius:8px;background:var(--surface);margin-bottom:24px">
+    <div style="margin-bottom:24px">
+        <div style="display:flex;gap:16px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;color:var(--text)">
+                <input type="radio" name="filterMode" value="all" checked="@(_filterMode == 0)"
+                       @onchange="() => OnFilterModeChanged(0)" />
+                Exportar tudo
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;color:var(--text)">
+                <input type="radio" name="filterMode" value="months" checked="@(_filterMode == 1)"
+                       @onchange="() => OnFilterModeChanged(1)" />
+                Exportar por meses
+            </label>
+        </div>
+
+        @if (_filterMode == 1)
+        {
+            <div style="padding:12px;background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,0.08);border-radius:6px;margin-bottom:8px">
+                @if (_isLoadingMonths)
+                {
+                    <span style="color:var(--text-secondary);font-size:14px">Carregando meses...</span>
+                }
+                else if (_availableMonths.Count == 0)
+                {
+                    <span style="color:var(--text-secondary);font-size:14px">Nenhum mês com dados disponível.</span>
+                }
+                else
+                {
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+                        @foreach (var month in _availableMonths)
+                        {
+                            var captured = month;
+                            var key = $"{month.Year}-{month.Month}";
+                            var isChecked = _selectedMonthKeys.Contains(key);
+                            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;color:var(--text);padding:4px 10px;box-shadow:0 1px 3px rgba(0,0,0,0.1);border-radius:4px;background:var(--surface);user-select:none">
+                                <input type="checkbox" checked="@isChecked"
+                                       @onchange="() => ToggleMonth(key)" />
+                                @captured.Name
+                            </label>
+                        }
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <button style="padding:4px 12px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer"
+                                @onclick="SelectAllMonths">
+                            Selecionar todos
+                        </button>
+                        <button style="padding:4px 12px;background:var(--text-secondary);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer"
+                                @onclick="ClearMonths">
+                            Limpar
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
     <div style="display:flex;flex-wrap:wrap;gap:24px">
         <div style="flex:1 1 calc(50% - 12px);min-width:300px">
             <div style="padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.1);border-radius:8px;background:var(--surface);margin-bottom:16px">
@@ -53,9 +108,78 @@
     private int _dataScope = 3;
     private int _visualScope = 3;
     private bool _isExporting;
+    private int _filterMode;
+    private List<MonthDto> _availableMonths = new();
+    private HashSet<string> _selectedMonthKeys = new();
+    private bool _isLoadingMonths;
 
-    private void OnDataScopeChanged(ChangeEventArgs e) => _dataScope = int.Parse(e.Value?.ToString() ?? "3");
-    private void OnVisualScopeChanged(ChangeEventArgs e) => _visualScope = int.Parse(e.Value?.ToString() ?? "3");
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAvailableMonths();
+    }
+
+    private async Task LoadAvailableMonths()
+    {
+        if (UserState.CurrentUser is null) return;
+
+        var scope = Math.Max(_dataScope, _visualScope);
+        _isLoadingMonths = true;
+        try
+        {
+            _availableMonths = await ExportService.GetAvailableMonthsAsync(UserState.CurrentUser.Id, scope);
+            _selectedMonthKeys = _availableMonths.Select(m => $"{m.Year}-{m.Month}").ToHashSet();
+        }
+        catch
+        {
+            _availableMonths = new();
+        }
+        finally
+        {
+            _isLoadingMonths = false;
+        }
+    }
+
+    private void OnFilterModeChanged(int mode)
+    {
+        _filterMode = mode;
+    }
+
+    private void ToggleMonth(string key)
+    {
+        if (_selectedMonthKeys.Contains(key))
+            _selectedMonthKeys.Remove(key);
+        else
+            _selectedMonthKeys.Add(key);
+    }
+
+    private void SelectAllMonths()
+    {
+        _selectedMonthKeys = _availableMonths.Select(m => $"{m.Year}-{m.Month}").ToHashSet();
+    }
+
+    private void ClearMonths()
+    {
+        _selectedMonthKeys = new();
+    }
+
+    private List<MonthDto> GetSelectedMonths()
+    {
+        return _availableMonths
+            .Where(m => _selectedMonthKeys.Contains($"{m.Year}-{m.Month}"))
+            .ToList();
+    }
+
+    private async Task OnDataScopeChanged(ChangeEventArgs e)
+    {
+        _dataScope = int.Parse(e.Value?.ToString() ?? "3");
+        await LoadAvailableMonths();
+    }
+
+    private async Task OnVisualScopeChanged(ChangeEventArgs e)
+    {
+        _visualScope = int.Parse(e.Value?.ToString() ?? "3");
+        await LoadAvailableMonths();
+    }
 
     private async Task ExportDataPdf()
     {
@@ -68,7 +192,9 @@
                 Scope = _dataScope,
                 IsVisualExport = false,
                 OwnerId = UserState.CurrentUser.Id,
-                OwnerName = UserState.CurrentUser.FullName
+                OwnerName = UserState.CurrentUser.FullName,
+                FilterByMonths = _filterMode == 1,
+                SelectedMonths = GetSelectedMonths()
             };
             var pdfBytes = await ExportService.ExportDataPdfAsync(request);
             await DownloadFile(pdfBytes, $"TaskFlow_Data_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
@@ -95,7 +221,9 @@
                 Scope = _visualScope,
                 IsVisualExport = true,
                 OwnerId = UserState.CurrentUser.Id,
-                OwnerName = UserState.CurrentUser.FullName
+                OwnerName = UserState.CurrentUser.FullName,
+                FilterByMonths = _filterMode == 1,
+                SelectedMonths = GetSelectedMonths()
             };
             var pdfBytes = await ExportService.ExportVisualPdfAsync(request);
             await DownloadFile(pdfBytes, $"TaskFlow_Report_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");

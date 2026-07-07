@@ -55,6 +55,8 @@ public class QuestPdfReportGenerator : IPdfReportGenerator
                             r.RelativeItem().Text($"Exportado: {m.ExportDate:dd/MM/yyyy HH:mm} UTC").FontSize(10);
                             r.RelativeItem().Text($"Migração: {m.MigrationId}").FontSize(9).FontColor(TextMuted).AlignRight();
                         });
+                        if (!string.IsNullOrWhiteSpace(m.FilterDescription))
+                            info.Item().Text($"Período: {m.FilterDescription}").FontSize(10).FontColor(Colors.Orange.Darken2);
                         info.Item().Text($"Versão do formato: {m.ExportVersion}").FontSize(8).FontColor(Colors.Grey.Lighten1);
                     });
 

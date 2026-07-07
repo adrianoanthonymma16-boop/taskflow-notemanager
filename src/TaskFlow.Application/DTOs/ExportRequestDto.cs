@@ -9,4 +9,6 @@ public class ExportRequestDto
     public bool IsVisualExport { get; set; }
     public int OwnerId { get; set; }
     public string OwnerName { get; set; } = string.Empty;
+    public bool FilterByMonths { get; set; }
+    public List<MonthDto> SelectedMonths { get; set; } = new();
 }

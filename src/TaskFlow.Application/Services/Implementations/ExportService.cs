@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using TaskFlow.Application.DTOs;
 using TaskFlow.Application.Services.Interfaces;
@@ -62,6 +63,43 @@ public class ExportService : IExportService
         return _reportGenerator.Generate(manifest);
     }
 
+    public async Task<List<MonthDto>> GetAvailableMonthsAsync(int ownerId, int scope)
+    {
+        var months = new HashSet<(int Year, int Month)>();
+        var importScope = (ImportScope)scope;
+
+        if (importScope == ImportScope.TaskOnly || importScope == ImportScope.FullSystem)
+        {
+            var tasks = await _taskRepository.GetByOwnerAsync(ownerId);
+            foreach (var task in tasks)
+                months.Add((task.CreatedAt.Year, task.CreatedAt.Month));
+        }
+
+        if (importScope == ImportScope.NoteOnly || importScope == ImportScope.FullSystem)
+        {
+            var notes = await _noteRepository.GetByOwnerAsync(ownerId);
+            foreach (var note in notes)
+                months.Add((note.CreatedAt.Year, note.CreatedAt.Month));
+        }
+
+        var cultura = new CultureInfo("pt-BR");
+        return months
+            .Select(m => new MonthDto
+            {
+                Year = m.Year,
+                Month = m.Month,
+                Name = $"{cultura.TextInfo.ToTitleCase(cultura.DateTimeFormat.GetMonthName(m.Month))} {m.Year}"
+            })
+            .OrderByDescending(m => m.Year)
+            .ThenByDescending(m => m.Month)
+            .ToList();
+    }
+
+    private static bool MatchesSelectedMonth(DateTime createdAt, List<MonthDto> selectedMonths)
+    {
+        return selectedMonths.Any(m => m.Year == createdAt.Year && m.Month == createdAt.Month);
+    }
+
     private async Task<ExportManifest> BuildManifest(ExportRequestDto request)
     {
         var user = await _userRepository.GetByIdAsync(request.OwnerId);
@@ -81,23 +119,16 @@ public class ExportService : IExportService
         if (scope == ImportScope.TaskOnly || scope == ImportScope.FullSystem)
         {
             var tasks = await _taskRepository.GetByOwnerAsync(request.OwnerId);
-            manifest.Tasks = tasks.Select(t => new TaskDto
-            {
-                Id = t.Id,
-                OwnerId = t.OwnerId,
-                Title = t.Title,
-                Description = t.Description,
-                DueDate = t.DueDate,
-                Status = (int)t.Status,
-                StatusName = t.Status.ToString(),
-                CreatedAt = t.CreatedAt,
-                UpdatedAt = t.UpdatedAt
-            }).ToList();
+
+            if (request.FilterByMonths && request.SelectedMonths.Count > 0)
+                tasks = tasks.Where(t => MatchesSelectedMonth(t.CreatedAt, request.SelectedMonths)).ToList();
+
+            var taskDtos = new List<TaskDto>();
 
             foreach (var task in tasks)
             {
                 var logs = await _pendingLogRepository.GetByTaskIdAsync(task.Id);
-                manifest.PendingLogs.AddRange(logs.Select(pl => new PendingLogDto
+                var logDtos = logs.Select(pl => new PendingLogDto
                 {
                     Id = pl.Id,
                     TaskId = pl.TaskId,
@@ -109,13 +140,35 @@ public class ExportService : IExportService
                     CreatedAt = pl.CreatedAt,
                     ResolvedAt = pl.ResolvedAt,
                     OwnerName = pl.Owner?.FullName ?? string.Empty
-                }));
+                }).ToList();
+
+                taskDtos.Add(new TaskDto
+                {
+                    Id = task.Id,
+                    OwnerId = task.OwnerId,
+                    Title = task.Title,
+                    Description = task.Description,
+                    DueDate = task.DueDate,
+                    Status = (int)task.Status,
+                    StatusName = task.Status.ToString(),
+                    CreatedAt = task.CreatedAt,
+                    UpdatedAt = task.UpdatedAt,
+                    PendingLogs = logDtos
+                });
+
+                manifest.PendingLogs.AddRange(logDtos);
             }
+
+            manifest.Tasks = taskDtos;
         }
 
         if (scope == ImportScope.NoteOnly || scope == ImportScope.FullSystem)
         {
             var notes = await _noteRepository.GetByOwnerAsync(request.OwnerId);
+
+            if (request.FilterByMonths && request.SelectedMonths.Count > 0)
+                notes = notes.Where(n => MatchesSelectedMonth(n.CreatedAt, request.SelectedMonths)).ToList();
+
             manifest.Notes = notes.Select(n => new NoteDto
             {
                 Id = n.Id,
@@ -151,6 +204,9 @@ public class ExportService : IExportService
         manifest.TotalPendingLogs = manifest.PendingLogs.Count;
         manifest.ActivePendingLogs = manifest.PendingLogs.Count(pl => pl.IsActive);
         manifest.ScopeName = scope.ToString();
+
+        if (request.FilterByMonths && request.SelectedMonths.Count > 0)
+            manifest.FilterDescription = string.Join(", ", request.SelectedMonths.Select(m => m.Name));
 
         return manifest;
     }

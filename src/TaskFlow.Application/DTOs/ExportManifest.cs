@@ -9,6 +9,7 @@ public class ExportManifest
     public string ScopeName { get; set; } = string.Empty;
     public string MigrationId { get; set; } = string.Empty;
     public string ExportVersion { get; set; } = "1.0";
+    public string FilterDescription { get; set; } = string.Empty;
     public List<TaskDto> Tasks { get; set; } = new();
     public List<PendingLogDto> PendingLogs { get; set; } = new();
     public List<NoteDto> Notes { get; set; } = new();

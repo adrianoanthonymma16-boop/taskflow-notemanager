@@ -12,4 +12,7 @@ public interface IExportService
 
     /// <summary> Gera um PDF de visualização (Tipo 2) para impressão/leitura humana. </summary>
     Task<byte[]> ExportVisualPdfAsync(ExportRequestDto request);
+
+    /// <summary> Retorna os meses com dados disponíveis para exportação no escopo informado. </summary>
+    Task<List<MonthDto>> GetAvailableMonthsAsync(int ownerId, int scope);
 }

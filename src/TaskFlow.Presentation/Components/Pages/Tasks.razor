@@ -291,7 +291,20 @@ else
     private TaskDto? _viewTask;
     private void ViewTask(TaskDto task) => _viewTask = task;
     private async Task CloseViewTask() { _viewTask = null; await LoadTasks(); }
-    private async Task CompleteFromView(TaskDto t) { try { await TaskService.MarkAsCompletedAsync(t.Id); Snackbar.Add("Concluída.", Severity.Success); await CloseViewTask(); } catch (InvalidOperationException ex) { Snackbar.Add(ex.Message, Severity.Error); } }
+    private async Task CompleteFromView(TaskDto t) {
+        try {
+            await TaskService.MarkAsCompletedAsync(t.Id);
+            Snackbar.Add("Concluída.", Severity.Success);
+            await CloseViewTask();
+        } catch (InvalidOperationException) {
+            try { if (await JS.InvokeAsync<bool>("confirm", "Esta tarefa possui pendências ativas. Deseja concluir mesmo assim?")) {
+                await TaskService.ForceMarkAsCompletedAsync(t.Id);
+                Snackbar.Add("Concluída (pendências resolvidas).", Severity.Success);
+                await CloseViewTask();
+            } else { Snackbar.Add("Conclusão cancelada.", Severity.Info); }
+            } catch { await CloseViewTask(); }
+        }
+    }
     private async Task ResolveFromView(TaskDto t) { await TaskService.ResolvePendingAsync(t.Id); Snackbar.Add("Reaberta.", Severity.Success); await CloseViewTask(); }
     private async Task ReopenFromView(TaskDto t) { await TaskService.ReopenAsync(t.Id); Snackbar.Add("Reaberta.", Severity.Success); await CloseViewTask(); }
     private async Task DeleteFromView(TaskDto t) { try { if (await JS.InvokeAsync<bool>("confirm", $"Excluir '{t.Title}'?")) { await TaskService.DeleteAsync(t.Id); Snackbar.Add("Excluída.", Severity.Success); await CloseViewTask(); } } catch { await CloseViewTask(); } }
@@ -334,7 +347,20 @@ else
     }
 
     private async Task ResolvePending(TaskDto t) { await TaskService.ResolvePendingAsync(t.Id); await LoadTasks(); Snackbar.Add("Reaberta.", Severity.Success); }
-    private async Task CompleteTask(TaskDto t) { try { await TaskService.MarkAsCompletedAsync(t.Id); await LoadTasks(); Snackbar.Add("Concluída.", Severity.Success); } catch (InvalidOperationException ex) { Snackbar.Add(ex.Message, Severity.Error); } }
+    private async Task CompleteTask(TaskDto t) {
+        try {
+            await TaskService.MarkAsCompletedAsync(t.Id);
+            await LoadTasks();
+            Snackbar.Add("Concluída.", Severity.Success);
+        } catch (InvalidOperationException) {
+            try { if (await JS.InvokeAsync<bool>("confirm", "Esta tarefa possui pendências ativas. Deseja concluir mesmo assim?")) {
+                await TaskService.ForceMarkAsCompletedAsync(t.Id);
+                await LoadTasks();
+                Snackbar.Add("Concluída (pendências resolvidas).", Severity.Success);
+            } else { Snackbar.Add("Conclusão cancelada.", Severity.Info); }
+            } catch { }
+        }
+    }
     private async Task ReopenTask(TaskDto t) { await TaskService.ReopenAsync(t.Id); await LoadTasks(); Snackbar.Add("Reaberta.", Severity.Success); }
     private async Task DeleteTask(TaskDto t) { try { if (await JS.InvokeAsync<bool>("confirm", $"Excluir '{t.Title}'?")) { await TaskService.DeleteAsync(t.Id); await LoadTasks(); Snackbar.Add("Excluída.", Severity.Success); } } catch { } }
 

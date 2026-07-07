@@ -148,6 +148,24 @@ public class TaskService : ITaskService
         return true;
     }
 
+    public async Task<bool> ForceMarkAsCompletedAsync(int taskId)
+    {
+        var task = await _taskRepository.GetByIdAsync(taskId);
+        if (task is null) return false;
+
+        foreach (var log in task.PendingLogs.Where(pl => pl.ResolvedAt == null))
+        {
+            log.ResolvedAt = DateTime.UtcNow;
+            await _pendingLogRepository.UpdateAsync(log);
+        }
+
+        task.Status = Domain.Enums.TaskStatus.Completed;
+        task.UpdatedAt = DateTime.UtcNow;
+        await _taskRepository.UpdateAsync(task);
+
+        return true;
+    }
+
     private static TaskDto MapToDto(TaskItem task)
     {
         return new TaskDto

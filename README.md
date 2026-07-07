@@ -64,7 +64,7 @@ Infrastructure (EF Core DbContext, Repositories, PDF services, FileStorage)
   - **Inline view modal** with full details, pending history, signatures, actions
   - **Pending system**: create pending logs with reason, counterparty, and hand-drawn signatures
   - Status flow: Open → Pending → Completed (with reopen)
-  - Block completion when active pending exists
+  - Block completion when active pending exists, with **force-complete confirmation** dialog
   - Filter by status
   - Overdue warnings on cards and Dashboard
 - **NoteManager (Notes)**:
@@ -74,8 +74,9 @@ Infrastructure (EF Core DbContext, Repositories, PDF services, FileStorage)
   - Attachment listing with file size formatting
 - **Export**:
   - **Type 1 — Data PDF**: embedded JSON with MigrationId for machine transfer/backup
-  - **Type 2 — Visual PDF**: comprehensive report with summary bar, all task/note details, pending logs, signatures, migration metadata
+  - **Type 2 — Visual PDF**: comprehensive report with summary bar, inline pending logs per task (active/resolved with color coding), signatures, migration metadata
   - Scope selection (Tasks only, Notes only, or Full System)
+  - **Month filtering**: export all data or select specific months via checkboxes; filtered period shown in PDF header
   - PDF opens in browser tab + downloads
 - **Import**:
   - **Mode A — Data import**: restore from Type 1 PDFs
@@ -241,7 +242,7 @@ Infrastructure (EF Core DbContext, Repositórios, Serviços PDF, FileStorage)
   - **Modal de visualização inline** com detalhes completos, histórico de pendências, assinaturas, ações
   - **Sistema de pendências**: criar com motivo, contraparte e assinatura desenhada à mão
   - Fluxo de status: Aberta → Pendente → Concluída (com reabertura)
-  - Bloqueio de conclusão quando há pendência ativa
+  - Bloqueio de conclusão quando há pendência ativa, com **diálogo de confirmação** para forçar conclusão
   - Filtro por status
   - Avisos de atraso nos cards e Dashboard
 - **NoteManager (Notas)**:
@@ -251,8 +252,9 @@ Infrastructure (EF Core DbContext, Repositórios, Serviços PDF, FileStorage)
   - Listagem de anexos com formatação de tamanho
 - **Exportação**:
   - **Tipo 1 — PDF de Dados**: JSON embutido com MigrationId para transferência/backup
-  - **Tipo 2 — PDF Visual**: relatório completo com barra de resumo, todos os detalhes, pendências, assinaturas, metadados
+  - **Tipo 2 — PDF Visual**: relatório completo com barra de resumo, pendências inline por tarefa (ativas/resolvidas com código de cores), assinaturas, metadados
   - Seleção de escopo (Apenas Tarefas, Apenas Notas, ou Sistema Completo)
+  - **Filtro por meses**: exportar tudo ou selecionar meses específicos via checkboxes; período filtrado exibido no cabeçalho do PDF
   - PDF abre no navegador + faz download
 - **Importação**:
   - **Modo A — Importação de dados**: restaurar de PDFs Tipo 1
