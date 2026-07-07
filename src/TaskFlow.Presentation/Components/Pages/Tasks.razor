@@ -6,7 +6,6 @@
 @inject IJSRuntime JS
 
 <style>
-    .sig-canvas { width:100%;height:120px;display:block;cursor:crosshair;touch-action:none }
     .task-card { transition: box-shadow 0.15s, transform 0.15s; }
     .task-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateY(-1px); }
 </style>
@@ -62,7 +61,7 @@ else
                     }
                     @if (task.Status == 1)
                     {
-                        <button @onclick="() => ResolvePending(task)" style="padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;background:#f57c00;color:#fff">❌ Remover Todas</button>
+                        <button @onclick="() => OpenSanarDialog(task)" style="padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;background:#f57c00;color:#fff">🔧 Sanar Pendência</button>
                     }
                     @if (task.Status == 0 || task.Status == 1)
                     {
@@ -146,7 +145,7 @@ else
                 }
                 @if (t.Status == 1)
                 {
-                    <button @onclick="() => ResolveFromView(t)" style="padding:8px 20px;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;background:#f57c00;color:#fff">❌ Remover Todas</button>
+                    <button @onclick="() => OpenSanarDialog(t)" style="padding:8px 20px;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;background:#f57c00;color:#fff">🔧 Sanar Pendência</button>
                 }
                 @if (t.Status == 2)
                 {
@@ -208,6 +207,10 @@ else
                                 }
                             </div>
                         }
+                        @if (!string.IsNullOrWhiteSpace(log.ResolutionNote))
+                        {
+                            <p style="margin:8px 0 0 0;font-size:0.8rem;color:#1565c0;font-style:italic">📝 @log.ResolutionNote</p>
+                        }
                     </div>
                 }
             }
@@ -231,22 +234,48 @@ else
             <textarea @bind="_pendingReason" style="width:100%;padding:12px;border:1px solid var(--border,#e0e0e0);border-radius:6px;font-size:0.95rem;font-family:inherit;resize:vertical;min-height:80px;box-sizing:border-box" required></textarea>
             <p style="margin:12px 0 4px 0;font-size:0.85rem;color:var(--text-secondary,#666)">Contraparte (opcional)</p>
             <input @bind="_pendingCounterparty" style="width:100%;padding:12px;border:1px solid var(--border,#e0e0e0);border-radius:6px;font-size:0.95rem;font-family:inherit;box-sizing:border-box" />
-            <p style="margin:16px 0 4px 0;font-size:0.85rem">Sua Assinatura</p>
-            <div style="position:relative;border:2px dashed var(--border,#e0e0e0);border-radius:8px;overflow:hidden;margin-bottom:8px;background:var(--surface,#fff);touch-action:none">
-                <canvas id="@_sigId" class="sig-canvas"></canvas>
-                <p style="margin:0;position:absolute;bottom:4px;right:8px;color:var(--text-secondary,#666);font-size:11px">Desenhe sua assinatura</p>
-            </div>
-            <button @onclick="() => ClearSig(_sigId)" style="padding:4px 12px;border:1px solid var(--border,#e0e0e0);border-radius:4px;cursor:pointer;font-size:0.8rem;background:transparent;margin-bottom:16px">🔄 Limpar</button>
-            <p style="margin:12px 0 4px 0;font-size:0.85rem">Assinatura da Contraparte <span style="color:var(--text-secondary,#666);font-size:0.8rem">(opcional)</span></p>
-            <div style="position:relative;border:2px dashed var(--border,#e0e0e0);border-radius:8px;overflow:hidden;margin-bottom:8px;background:var(--surface,#fff);touch-action:none">
-                <canvas id="@_sigCtrId" class="sig-canvas"></canvas>
-                <p style="margin:0;position:absolute;bottom:4px;right:8px;color:var(--text-secondary,#666);font-size:11px">Desenhe a assinatura da contraparte</p>
-            </div>
-            <button @onclick="() => ClearSig(_sigCtrId)" style="padding:4px 12px;border:1px solid var(--border,#e0e0e0);border-radius:4px;cursor:pointer;font-size:0.8rem;background:transparent;margin-bottom:16px">🔄 Limpar</button>
             <hr style="border:none;border-top:1px solid var(--border,#e0e0e0);margin:16px 0" />
             <div style="display:flex;justify-content:flex-end;gap:8px">
                 <button @onclick="CancelPending" style="padding:8px 20px;border:1px solid var(--border,#e0e0e0);border-radius:6px;cursor:pointer;font-size:0.9rem;background:transparent">Cancelar</button>
                 <button @onclick="SubmitPending" style="padding:8px 20px;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;background:#f57c00;color:#fff">⚠️ Marcar Pendência</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* Modal Sanar Pendência *@
+@if (_showSanarDialog && _sanarPendencies.Count > 0)
+{
+    <div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center" @onclick="CancelarSanar">
+        <div style="background:var(--surface,#fff);border-radius:12px;max-width:520px;width:95%;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.3)" @onclick:stopPropagation>
+            <h3 style="margin:0 0 16px 0;display:flex;align-items:center;gap:8px;font-size:1.2rem">🔧 Sanar Pendência</h3>
+            <p style="margin:0 0 12px 0;font-size:0.85rem;color:var(--text-secondary,#666)">
+                @(_sanarPendencies.Count == 1 ? "1 pendência ativa" : $"{_sanarPendencies.Count} pendências ativas")
+            </p>
+
+            @foreach (var log in _sanarPendencies.OrderByDescending(l => l.CreatedAt))
+            {
+                <div style="padding:12px;margin-bottom:8px;border-radius:8px;border:1px solid #ffe0b2;background:#fff8e1">
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap">
+                        <div style="flex:1;min-width:200px">
+                            <p style="margin:0;font-weight:600;font-size:0.9rem;color:#e65100">@(log.Reason.Length > 80 ? log.Reason[..80] + "..." : log.Reason)</p>
+                            <p style="margin:4px 0 0 0;font-size:0.75rem;color:var(--text-secondary,#666)">
+                                @log.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                @if (!string.IsNullOrWhiteSpace(log.CounterpartyName))
+                                {
+                                    <span> — @log.CounterpartyName</span>
+                                }
+                            </p>
+                        </div>
+                        <button @onclick="() => SanarEspecifica(log.Id)" style="padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;background:#43a047;color:#fff;white-space:nowrap">✅ Sanar</button>
+                    </div>
+                </div>
+            }
+
+            <hr style="border:none;border-top:1px solid var(--border,#e0e0e0);margin:12px 0" />
+            <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                <button @onclick="SanarTodas" style="padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;background:#f57c00;color:#fff">🗑️ Remover Todas</button>
+                <button @onclick="CancelarSanar" style="padding:8px 16px;border:1px solid var(--border,#e0e0e0);border-radius:6px;cursor:pointer;font-size:0.9rem;background:transparent;color:var(--text,#333)">Cancelar</button>
             </div>
         </div>
     </div>
@@ -309,26 +338,52 @@ else
             } catch { await CloseViewTask(); }
         }
     }
-    private async Task ResolveFromView(TaskDto t) { await TaskService.ResolvePendingAsync(t.Id); Snackbar.Add("Reaberta.", Severity.Success); await CloseViewTask(); }
-    private async Task ResolvePendingLogFromView(int logId) { await TaskService.ResolvePendingLogAsync(logId); Snackbar.Add("Pendência resolvida.", Severity.Success); await RefreshViewTask(); }
+    private async Task ResolvePendingLogFromView(int logId) {
+        try {
+            var note = await JS.InvokeAsync<string>("prompt", "Providências tomadas (opcional):");
+            await TaskService.ResolvePendingLogAsync(logId, note);
+            Snackbar.Add("Pendência resolvida.", Severity.Success);
+        } catch { }
+        await RefreshViewTask();
+    }
     private async Task ReopenFromView(TaskDto t) { await TaskService.ReopenAsync(t.Id); Snackbar.Add("Reaberta.", Severity.Success); await CloseViewTask(); }
     private async Task DeleteFromView(TaskDto t) { try { if (await JS.InvokeAsync<bool>("confirm", $"Excluir '{t.Title}'?")) { await TaskService.DeleteAsync(t.Id); Snackbar.Add("Excluída.", Severity.Success); await CloseViewTask(); } } catch { await CloseViewTask(); } }
 
+    private bool _showSanarDialog;
+    private List<PendingLogDto> _sanarPendencies = new();
+    private int _sanarTaskId;
+    private void OpenSanarDialog(TaskDto t) { _sanarTaskId = t.Id; _sanarPendencies = t.PendingLogs.Where(pl => pl.IsActive).ToList(); _showSanarDialog = true; }
+    private async Task SanarEspecifica(int logId) {
+        try {
+            var note = await JS.InvokeAsync<string>("prompt", "Providências tomadas (opcional):");
+            await TaskService.ResolvePendingLogAsync(logId, note);
+            Snackbar.Add("Pendência resolvida.", Severity.Success);
+        } catch { }
+        _showSanarDialog = false;
+        await RefreshViewTask();
+    }
+    private async Task SanarTodas() {
+        try {
+            var note = await JS.InvokeAsync<string>("prompt", "Providências tomadas (opcional):");
+            await TaskService.ResolvePendingAsync(_sanarTaskId, note);
+            Snackbar.Add("Todas as pendências resolvidas.", Severity.Success);
+        } catch { }
+        _showSanarDialog = false;
+        await RefreshViewTask();
+    }
+    private void CancelarSanar() { _showSanarDialog = false; }
+
     private bool _showPendingModal;
     private int _pendingTaskId;
-    private string _pendingReason = "", _pendingCounterparty = "", _pendingSig = "", _pendingCounterSig = "";
-    private readonly string _sigId = $"sig-{Guid.NewGuid():N}", _sigCtrId = $"sig-ctr-{Guid.NewGuid():N}";
+    private string _pendingReason = "", _pendingCounterparty = "";
     private void OpenPendingForTask(TaskDto t) { _pendingTaskId = t.Id; ResetPendingForm(); _showPendingModal = true; }
     private void OpenPendingFromView() { if (_viewTask is null) return; _pendingTaskId = _viewTask.Id; ResetPendingForm(); _showPendingModal = true; }
-    private void ResetPendingForm() { _pendingReason = ""; _pendingCounterparty = ""; _pendingSig = ""; _pendingCounterSig = ""; }
-    private async Task ClearSig(string id) { try { await JS.InvokeVoidAsync("signaturePad.clear", id); } catch { } }
+    private void ResetPendingForm() { _pendingReason = ""; _pendingCounterparty = ""; }
 
     private async Task SubmitPending()
     {
         if (UserState.CurrentUser is null || string.IsNullOrWhiteSpace(_pendingReason)) return;
-        try { _pendingSig = await JS.InvokeAsync<string>("signaturePad.getData", _sigId); } catch { _pendingSig = ""; }
-        try { _pendingCounterSig = await JS.InvokeAsync<string>("signaturePad.getData", _sigCtrId); } catch { _pendingCounterSig = ""; }
-        var dto = new CreatePendingLogDto { TaskId = _pendingTaskId, Reason = _pendingReason, CounterpartyName = string.IsNullOrWhiteSpace(_pendingCounterparty) ? null : _pendingCounterparty, MySignature = _pendingSig, CounterpartySignature = string.IsNullOrWhiteSpace(_pendingCounterSig) ? null : _pendingCounterSig };
+        var dto = new CreatePendingLogDto { TaskId = _pendingTaskId, Reason = _pendingReason, CounterpartyName = string.IsNullOrWhiteSpace(_pendingCounterparty) ? null : _pendingCounterparty };
         await TaskService.MarkAsPendingAsync(UserState.CurrentUser.Id, dto);
         Snackbar.Add("Pendência registrada.", Severity.Warning);
         _showPendingModal = false;
@@ -342,16 +397,6 @@ else
         if (_viewTask is not null) _viewTask = _tasks.FirstOrDefault(t => t.Id == _viewTask.Id);
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            try { await JS.InvokeVoidAsync("signaturePad.init", _sigId); } catch { }
-            try { await JS.InvokeVoidAsync("signaturePad.init", _sigCtrId); } catch { }
-        }
-    }
-
-    private async Task ResolvePending(TaskDto t) { await TaskService.ResolvePendingAsync(t.Id); await LoadTasks(); Snackbar.Add("Reaberta.", Severity.Success); }
     private async Task CompleteTask(TaskDto t) {
         try {
             await TaskService.MarkAsCompletedAsync(t.Id);

@@ -18,5 +18,7 @@ public class PendingLogDto
 
     public string? CounterpartySignature { get; set; }
 
+    public string? ResolutionNote { get; set; }
+
     public bool IsActive => ResolvedAt is null;
 }

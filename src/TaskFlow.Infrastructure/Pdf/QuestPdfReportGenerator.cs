@@ -185,6 +185,9 @@ public class QuestPdfReportGenerator : IPdfReportGenerator
                             if (log.ResolvedAt.HasValue)
                                 pend.Item().Text($"Resolvida: {log.ResolvedAt:dd/MM/yyyy HH:mm}").FontSize(8).FontColor(Colors.Green.Darken3);
 
+                            if (!string.IsNullOrWhiteSpace(log.ResolutionNote))
+                                pend.Item().Text($"Providências: {log.ResolutionNote}").FontSize(8).FontColor(Colors.Blue.Darken1).Italic();
+
                             if (!string.IsNullOrWhiteSpace(log.MySignature) || !string.IsNullOrWhiteSpace(log.CounterpartySignature))
                             {
                                 pend.Item().Text("Assinaturas registradas").FontSize(8).Italic().FontColor(TextMuted);
@@ -265,6 +268,8 @@ public class QuestPdfReportGenerator : IPdfReportGenerator
                     pend.Item().Text($"Contraparte: {log.CounterpartyName}").FontSize(9).FontColor(TextMuted);
                 if (log.ResolvedAt.HasValue)
                     pend.Item().Text($"Resolvida: {log.ResolvedAt:dd/MM/yyyy HH:mm}").FontSize(9).FontColor(Colors.Green.Darken3);
+                if (!string.IsNullOrWhiteSpace(log.ResolutionNote))
+                    pend.Item().Text($"Providências: {log.ResolutionNote}").FontSize(9).FontColor(Colors.Blue.Darken1).Italic();
             });
         }
     }

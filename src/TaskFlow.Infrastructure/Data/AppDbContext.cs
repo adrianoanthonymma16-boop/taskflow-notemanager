@@ -63,7 +63,6 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<PendingLog>(entity =>
         {
             entity.Property(pl => pl.Reason).IsRequired().HasMaxLength(1000);
-            entity.Property(pl => pl.MySignature).IsRequired();
         });
 
         modelBuilder.Entity<Note>(entity =>

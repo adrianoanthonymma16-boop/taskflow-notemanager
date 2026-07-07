@@ -85,8 +85,8 @@ public class TaskService : ITaskService
             OwnerId = ownerId,
             Reason = dto.Reason.Trim(),
             CounterpartyName = dto.CounterpartyName?.Trim(),
-            MySignature = dto.MySignature,
-            CounterpartySignature = dto.CounterpartySignature,
+            MySignature = dto.MySignature ?? string.Empty,
+            CounterpartySignature = dto.CounterpartySignature ?? string.Empty,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -130,16 +130,23 @@ public class TaskService : ITaskService
     }
 
     /// <inheritdoc/>
-    public async Task<bool> ResolvePendingAsync(int taskId)
+    public async Task<bool> ResolvePendingAsync(int taskId, string? resolutionNote = null)
     {
         var task = await _taskRepository.GetByIdAsync(taskId);
         if (task is null) return false;
 
-        var activeLog = task.PendingLogs.FirstOrDefault(pl => pl.ResolvedAt == null);
-        if (activeLog is null) return false;
+        var activeLogs = task.PendingLogs.Where(pl => pl.ResolvedAt == null).ToList();
+        if (activeLogs.Count == 0) return false;
 
-        activeLog.ResolvedAt = DateTime.UtcNow;
-        await _pendingLogRepository.UpdateAsync(activeLog);
+        var trimmedNote = !string.IsNullOrWhiteSpace(resolutionNote) ? resolutionNote.Trim() : null;
+        var now = DateTime.UtcNow;
+        foreach (var log in activeLogs)
+        {
+            log.ResolvedAt = now;
+            if (trimmedNote is not null)
+                log.ResolutionNote = trimmedNote;
+            await _pendingLogRepository.UpdateAsync(log);
+        }
 
         task.Status = Domain.Enums.TaskStatus.Open;
         task.UpdatedAt = DateTime.UtcNow;
@@ -156,6 +163,7 @@ public class TaskService : ITaskService
         foreach (var log in task.PendingLogs.Where(pl => pl.ResolvedAt == null))
         {
             log.ResolvedAt = DateTime.UtcNow;
+            log.ResolutionNote ??= "Resolvida automaticamente ao concluir a tarefa.";
             await _pendingLogRepository.UpdateAsync(log);
         }
 
@@ -166,12 +174,14 @@ public class TaskService : ITaskService
         return true;
     }
 
-    public async Task<bool> ResolvePendingLogAsync(int pendingLogId)
+    public async Task<bool> ResolvePendingLogAsync(int pendingLogId, string? resolutionNote = null)
     {
         var pendingLog = await _pendingLogRepository.GetByIdAsync(pendingLogId);
         if (pendingLog is null || pendingLog.ResolvedAt is not null) return false;
 
         pendingLog.ResolvedAt = DateTime.UtcNow;
+        if (!string.IsNullOrWhiteSpace(resolutionNote))
+            pendingLog.ResolutionNote = resolutionNote.Trim();
         await _pendingLogRepository.UpdateAsync(pendingLog);
 
         var task = await _taskRepository.GetByIdAsync(pendingLog.TaskId);
@@ -211,6 +221,7 @@ public class TaskService : ITaskService
                 CounterpartyName = pl.CounterpartyName,
                 MySignature = pl.MySignature,
                 CounterpartySignature = pl.CounterpartySignature,
+                ResolutionNote = pl.ResolutionNote,
                 CreatedAt = pl.CreatedAt,
                 ResolvedAt = pl.ResolvedAt,
                 OwnerName = pl.Owner?.FullName ?? string.Empty

@@ -137,6 +137,7 @@ public class ExportService : IExportService
                     CounterpartyName = pl.CounterpartyName,
                     MySignature = pl.MySignature,
                     CounterpartySignature = pl.CounterpartySignature,
+                    ResolutionNote = pl.ResolutionNote,
                     CreatedAt = pl.CreatedAt,
                     ResolvedAt = pl.ResolvedAt,
                     OwnerName = pl.Owner?.FullName ?? string.Empty

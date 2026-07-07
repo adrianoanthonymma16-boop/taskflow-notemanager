@@ -32,11 +32,11 @@ public interface ITaskService
     Task<bool> ReopenAsync(int taskId);
 
     /// <summary> Remove a pendência ativa de uma tarefa, reabrindo-a. </summary>
-    Task<bool> ResolvePendingAsync(int taskId);
+    Task<bool> ResolvePendingAsync(int taskId, string? resolutionNote = null);
 
     /// <summary> Conclui a tarefa mesmo com pendências ativas, resolvendo-as automaticamente. </summary>
     Task<bool> ForceMarkAsCompletedAsync(int taskId);
 
     /// <summary> Resolve uma pendência específica pelo ID. Se não houver mais pendências ativas, reabre a tarefa. </summary>
-    Task<bool> ResolvePendingLogAsync(int pendingLogId);
+    Task<bool> ResolvePendingLogAsync(int pendingLogId, string? resolutionNote = null);
 }

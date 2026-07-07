@@ -35,7 +35,7 @@
 | Password Hashing | BCrypt.Net-Next |
 | Object Mapping | AutoMapper 12.0 |
 | Testing | xUnit + Moq + FluentAssertions (16 tests) |
-| Signatures | signature-pad.js (HTML5 canvas mouse/touch drawing as Base64 PNG) |
+| Dark Mode | CSS theme with localStorage persistence |
 
 ### Architecture — Clean Architecture
 
@@ -62,7 +62,9 @@ Infrastructure (EF Core DbContext, Repositories, PDF services, FileStorage)
 - **TaskFlow (Tasks)**:
   - CRUD with title, description, due date
   - **Inline view modal** with full details, pending history, signatures, actions
-  - **Pending system**: create multiple pending logs per task with reason, counterparty, and hand-drawn signatures
+  - **Pending system**: create multiple pending logs per task with reason, counterparty
+  - **Sanar pendências**: clickable dialog lists all active pendencies; resolve specific or all
+  - **Resolution note**: optional text explaining measures taken, saved in DB and visible in PDF
   - **Individual resolution**: resolve each pending log independently; task reopens when all resolved
   - Status flow: Open → Pending → Completed (with reopen)
   - Block completion when active pending exists, with **force-complete confirmation** dialog
@@ -214,7 +216,7 @@ This project is licensed under the [MIT License](LICENSE).
 | Hash de senhas | BCrypt.Net-Next |
 | Mapeamento de objetos | AutoMapper 12.0 |
 | Testes | xUnit + Moq + FluentAssertions (16 testes) |
-| Assinaturas | signature-pad.js (canvas HTML5 para desenho mouse/touch em Base64 PNG) |
+| Modo Escuro | Tema CSS com persistência localStorage |
 
 ### Arquitetura — Clean Architecture
 
@@ -241,7 +243,9 @@ Infrastructure (EF Core DbContext, Repositórios, Serviços PDF, FileStorage)
 - **TaskFlow (Tarefas)**:
   - CRUD com título, descrição, data de término
   - **Modal de visualização inline** com detalhes completos, histórico de pendências, assinaturas, ações
-  - **Sistema de pendências**: múltiplas pendências por tarefa com motivo, contraparte e assinatura desenhada à mão
+  - **Sistema de pendências**: múltiplas pendências por tarefa com motivo e contraparte
+  - **Sanar pendências**: diálogo clicável lista todas as pendências ativas; resolva específica ou todas
+  - **Nota de resolução**: texto opcional sobre providências tomadas, salvo no banco e visível no PDF
   - **Resolução individual**: resolva cada pendência separadamente; tarefa reabre quando todas resolvidas
   - Fluxo de status: Aberta → Pendente → Concluída (com reabertura)
   - Bloqueio de conclusão quando há pendência ativa, com **diálogo de confirmação** para forçar conclusão

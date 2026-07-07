@@ -32,6 +32,9 @@ public class PendingLog
     /// <summary> Data em que a pendência foi resolvida. </summary>
     public DateTime? ResolvedAt { get; set; }
 
+    /// <summary> Providências tomadas para sanar a pendência (opcional). </summary>
+    public string? ResolutionNote { get; set; }
+
     /// <summary> Tarefa vinculada a esta pendência. </summary>
     public TaskItem Task { get; set; } = null!;
 
