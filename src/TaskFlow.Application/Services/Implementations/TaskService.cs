@@ -166,6 +166,29 @@ public class TaskService : ITaskService
         return true;
     }
 
+    public async Task<bool> ResolvePendingLogAsync(int pendingLogId)
+    {
+        var pendingLog = await _pendingLogRepository.GetByIdAsync(pendingLogId);
+        if (pendingLog is null || pendingLog.ResolvedAt is not null) return false;
+
+        pendingLog.ResolvedAt = DateTime.UtcNow;
+        await _pendingLogRepository.UpdateAsync(pendingLog);
+
+        var task = await _taskRepository.GetByIdAsync(pendingLog.TaskId);
+        if (task is not null)
+        {
+            var hasActive = await _taskRepository.HasActivePendingLogAsync(task.Id);
+            if (!hasActive)
+            {
+                task.Status = Domain.Enums.TaskStatus.Open;
+                task.UpdatedAt = DateTime.UtcNow;
+                await _taskRepository.UpdateAsync(task);
+            }
+        }
+
+        return true;
+    }
+
     private static TaskDto MapToDto(TaskItem task)
     {
         return new TaskDto

@@ -56,15 +56,15 @@ else
                     }
                 </div>
                 <div style="display:flex;gap:6px;flex-wrap:wrap">
-                    @if (task.Status == 0)
+                    @if (task.Status == 0 || task.Status == 1)
                     {
                         <button @onclick="() => OpenPendingForTask(task)" style="padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;background:#d32f2f;color:#fff">⚠️ Pendência</button>
                     }
                     @if (task.Status == 1)
                     {
-                        <button @onclick="() => ResolvePending(task)" style="padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;background:#f57c00;color:#fff">❌ Remover Pendência</button>
+                        <button @onclick="() => ResolvePending(task)" style="padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;background:#f57c00;color:#fff">❌ Remover Todas</button>
                     }
-                    @if (task.Status == 0)
+                    @if (task.Status == 0 || task.Status == 1)
                     {
                         <button @onclick="() => CompleteTask(task)" style="padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;background:#43a047;color:#fff">✅ Concluir</button>
                     }
@@ -139,14 +139,14 @@ else
             <hr style="border:none;border-top:1px solid var(--border,#e0e0e0);margin:16px 0" />
 
             <div style="display:flex;gap:8px;flex-wrap:wrap">
-                @if (t.Status == 0)
+                @if (t.Status == 0 || t.Status == 1)
                 {
                     <button @onclick="OpenPendingFromView" style="padding:8px 20px;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;background:#f57c00;color:#fff">⚠️ Marcar Pendência</button>
                     <button @onclick="() => CompleteFromView(t)" style="padding:8px 20px;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;background:#43a047;color:#fff">✅ Concluir</button>
                 }
                 @if (t.Status == 1)
                 {
-                    <button @onclick="() => ResolveFromView(t)" style="padding:8px 20px;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;background:#f57c00;color:#fff">❌ Remover Pendência</button>
+                    <button @onclick="() => ResolveFromView(t)" style="padding:8px 20px;border:none;border-radius:6px;cursor:pointer;font-size:0.9rem;background:#f57c00;color:#fff">❌ Remover Todas</button>
                 }
                 @if (t.Status == 2)
                 {
@@ -161,14 +161,18 @@ else
                 @foreach (var log in t.PendingLogs.OrderByDescending(l => l.CreatedAt))
                 {
                     <div style="padding:14px;margin-bottom:10px;border-radius:10px;border:2px solid @(log.IsActive ? "#ffe0b2" : "#c8e6c9");background:@(log.IsActive ? "#fff8e1" : "#f1f8e9")">
-                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
                             <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:@(log.IsActive ? "#fff3e0" : "#e8f5e9");font-size:1rem">@(log.IsActive ? "⚠️" : "✅")</div>
-                            <div>
+                            <div style="flex:1">
                                 <p style="margin:0;font-weight:700;font-size:0.9rem;color:@(log.IsActive ? "#e65100" : "#2e7d32")">@(log.IsActive ? "Pendência Ativa" : "Pendência Resolvida")</p>
                                 <p style="margin:0;font-size:0.8rem;color:var(--text-secondary,#666)">
                                     @(log.IsActive ? $"Aberta em {log.CreatedAt:dd/MM/yyyy HH:mm}" : $"Resolvida em {log.ResolvedAt:dd/MM/yyyy HH:mm}")
                                 </p>
                             </div>
+                            @if (log.IsActive)
+                            {
+                                <button @onclick="() => ResolvePendingLogFromView(log.Id)" style="padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;background:#43a047;color:#fff;white-space:nowrap">✅ Resolver</button>
+                            }
                         </div>
                         <p style="margin:0;font-size:0.8rem;color:var(--text-secondary,#666)">Registrado por</p>
                         <p style="margin:2px 0 8px 0;font-weight:500">@log.OwnerName</p>
@@ -306,6 +310,7 @@ else
         }
     }
     private async Task ResolveFromView(TaskDto t) { await TaskService.ResolvePendingAsync(t.Id); Snackbar.Add("Reaberta.", Severity.Success); await CloseViewTask(); }
+    private async Task ResolvePendingLogFromView(int logId) { await TaskService.ResolvePendingLogAsync(logId); Snackbar.Add("Pendência resolvida.", Severity.Success); await RefreshViewTask(); }
     private async Task ReopenFromView(TaskDto t) { await TaskService.ReopenAsync(t.Id); Snackbar.Add("Reaberta.", Severity.Success); await CloseViewTask(); }
     private async Task DeleteFromView(TaskDto t) { try { if (await JS.InvokeAsync<bool>("confirm", $"Excluir '{t.Title}'?")) { await TaskService.DeleteAsync(t.Id); Snackbar.Add("Excluída.", Severity.Success); await CloseViewTask(); } } catch { await CloseViewTask(); } }
 

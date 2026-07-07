@@ -62,7 +62,8 @@ Infrastructure (EF Core DbContext, Repositories, PDF services, FileStorage)
 - **TaskFlow (Tasks)**:
   - CRUD with title, description, due date
   - **Inline view modal** with full details, pending history, signatures, actions
-  - **Pending system**: create pending logs with reason, counterparty, and hand-drawn signatures
+  - **Pending system**: create multiple pending logs per task with reason, counterparty, and hand-drawn signatures
+  - **Individual resolution**: resolve each pending log independently; task reopens when all resolved
   - Status flow: Open → Pending → Completed (with reopen)
   - Block completion when active pending exists, with **force-complete confirmation** dialog
   - Filter by status
@@ -111,7 +112,7 @@ dotnet run
 
 ### Desktop Shortcut (Linux)
 
-The launcher kills any previous server, rebuilds, and starts fresh every time:
+The launcher kills any previous server, cleans the build cache, rebuilds, and starts fresh every time:
 
 ```bash
 cat > ~/Desktop/taskflow.desktop << 'EOF'
@@ -240,7 +241,8 @@ Infrastructure (EF Core DbContext, Repositórios, Serviços PDF, FileStorage)
 - **TaskFlow (Tarefas)**:
   - CRUD com título, descrição, data de término
   - **Modal de visualização inline** com detalhes completos, histórico de pendências, assinaturas, ações
-  - **Sistema de pendências**: criar com motivo, contraparte e assinatura desenhada à mão
+  - **Sistema de pendências**: múltiplas pendências por tarefa com motivo, contraparte e assinatura desenhada à mão
+  - **Resolução individual**: resolva cada pendência separadamente; tarefa reabre quando todas resolvidas
   - Fluxo de status: Aberta → Pendente → Concluída (com reabertura)
   - Bloqueio de conclusão quando há pendência ativa, com **diálogo de confirmação** para forçar conclusão
   - Filtro por status
@@ -289,7 +291,7 @@ dotnet run
 
 ### Atalho na Área de Trabalho (Linux)
 
-O launcher mata o servidor anterior, recompila e inicia do zero a cada clique:
+O launcher mata o servidor anterior, limpa o cache de build, recompila e inicia do zero a cada clique:
 
 ```bash
 cat > ~/Desktop/taskflow.desktop << 'EOF'

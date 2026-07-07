@@ -36,4 +36,7 @@ public interface ITaskService
 
     /// <summary> Conclui a tarefa mesmo com pendências ativas, resolvendo-as automaticamente. </summary>
     Task<bool> ForceMarkAsCompletedAsync(int taskId);
+
+    /// <summary> Resolve uma pendência específica pelo ID. Se não houver mais pendências ativas, reabre a tarefa. </summary>
+    Task<bool> ResolvePendingLogAsync(int pendingLogId);
 }
